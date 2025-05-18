@@ -1,3 +1,6 @@
+#include "robot_thread.h"
+
+
 #include "lvgl/lvgl.h"
 #include "lv_drivers/display/drm.h"
 #include "lv_drivers/display/fbdev.h"
@@ -11,18 +14,17 @@
 #include "gui_guider.h"
 #include "events_init.h"
 #include "custom.h"
-
 lv_ui guider_ui;
 
-int QUIT_FLAG;
+// int QUIT_FLAG;
 float SCALE;
 int WIFI_ENABLE;
 int MUSIC_ENABLE;
-
+extern volatile int QUIT_FLAG;
 //static char* TSDEV="/dev/input/event0";
-
-int main()
-{
+void gui_thread() {
+    // pthread_setname_np(pthread_self(), "skg_gui");
+    std::cout << "gui thread start..." << std::endl;
     int ret;
 
     /*GUI-Guider app Init*/
@@ -33,16 +35,16 @@ int main()
     if(!ret)
     {
         /* Get Chip WIIF Info */
-        luckfox_get_wifi_enable_info();
+        // luckfox_get_wifi_enable_info();
 
         /* Check Music Dir */
-        luckfox_check_music_enable_info();
+        // luckfox_check_music_enable_info();
     }
 
     /* Get DRM Info */
     luckfox_get_drm_info(); // Set SCALE
-    int disp_width = WIDTH * SCALE;
-    int disp_height = HEIGHT * SCALE;
+    int disp_width = LV_HOR_RES_MAX * SCALE;
+    int disp_height = LV_VER_RES_MAX * SCALE;
     const int disp_buf_size = disp_width * disp_height / 2;
 
     /*LittlevGL init*/
@@ -50,7 +52,7 @@ int main()
 
     /*Linux FrameBuffer or DRM device init*/
     fbdev_init();
-    //drm_init();
+    // drm_init();
     
     /*Two buffer for LittlevGL to draw the screen's content*/
     lv_color_t buf0[disp_buf_size];
@@ -65,7 +67,7 @@ int main()
     lv_disp_drv_init(&disp_drv);
     disp_drv.draw_buf   = &disp_buf;
     disp_drv.flush_cb   = fbdev_flush; 
-    //disp_drv.flush_cb   = drm_flush;
+    // disp_drv.flush_cb   = drm_flush;
     disp_drv.hor_res    = disp_width;
     disp_drv.ver_res    = disp_height;
     lv_disp_drv_register(&disp_drv);
@@ -92,10 +94,10 @@ int main()
     }
 
     /*Backend handler release */ 
-    if( WIFI_ENABLE == 1 )
-        wifi_backend_release();
-    main_backend_release();
+    // if( WIFI_ENABLE == 1 )
+    //     wifi_backend_release();
+    // main_backend_release();
 
     system("cat /dev/zero > /dev/fb0");
-    return 0;
+    // return 0;
 }

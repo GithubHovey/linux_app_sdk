@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 set(SDK_PATH $ENV{LUCKFOX_SDK_PATH})
 set(GLIBC_COMPILER $ENV{GLIBC_COMPILER})
+# set(SYSROOT "${SDK_PATH}/sysdrv/source/buildroot/buildroot-2023.02.6/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot")
+set(CMAKE_SYSROOT ${SDK_PATH}/sysdrv/source/buildroot/buildroot-2023.02.6/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot)
 if(NOT SDK_PATH)
     message(WARNING "Please Set Luckfox-pico SDK Path. Such as:export LUCKFOX_SDK_PATH=/home/user/luckfox-pico")
     if (NOT GLIBC_COMPILER) 
@@ -17,7 +19,7 @@ else()
     set(CMAKE_CXX_COMPILER "${SDK_PATH}/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-g++")
 endif()
 
-project(luckfox_lvgl_demo)
+project(lvgl_demo)
 
 if(SYSTEM_UBUNTU)
     include_directories( 
@@ -41,6 +43,7 @@ if(SYSTEM_UBUNTU)
 else()
     include_directories( 
         ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/thread
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/include/uclibc/drm
         ${CMAKE_SOURCE_DIR}/include/uclibc/cjson
@@ -64,7 +67,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lvgl EXCLUDE_FROM_ALL)
 add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lv_drivers EXCLUDE_FROM_ALL)
 
 
-file(GLOB SRC ${CMAKE_SOURCE_DIR}/src/*.c
+file(GLOB SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/thread/*.cpp
             ${CMAKE_SOURCE_DIR}/custom/*.c
             ${CMAKE_SOURCE_DIR}/generated/*.c
             ${CMAKE_SOURCE_DIR}/generated/images/*.c
@@ -113,6 +117,7 @@ target_link_libraries(${PROJECT_NAME}
     pthread
     drm
     cjson
+    portaudio
 )
 
 if(SYSTEM_UBUNTU) 
