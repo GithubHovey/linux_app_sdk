@@ -19,7 +19,7 @@ else()
     set(CMAKE_CXX_COMPILER "${SDK_PATH}/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-g++")
 endif()
 
-project(lvgl_demo)
+project(robot.exe)
 
 if(SYSTEM_UBUNTU)
     include_directories( 
@@ -73,6 +73,7 @@ file(GLOB SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
             ${CMAKE_SOURCE_DIR}/generated/*.c
             ${CMAKE_SOURCE_DIR}/generated/images/*.c
             ${CMAKE_SOURCE_DIR}/generated/guider_fonts/*.c
+            ${CMAKE_SOURCE_DIR}/lib/communication/*.cpp
 )
 
 add_executable(${PROJECT_NAME} 
@@ -99,6 +100,7 @@ if(SYSTEM_UBUNTU)
         ${CMAKE_CURRENT_SOURCE_DIR}/lib
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/lvgl/src
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/lvgl/font
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/communication
     )
 else()
     target_include_directories(${PROJECT_NAME} PRIVATE
@@ -108,6 +110,7 @@ else()
         ${CMAKE_CURRENT_SOURCE_DIR}/lib
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/lvgl/src
         ${CMAKE_CURRENT_SOURCE_DIR}/lib/lvgl/font
+        ${CMAKE_CURRENT_SOURCE_DIR}/lib/communication
     )
 endif()
 

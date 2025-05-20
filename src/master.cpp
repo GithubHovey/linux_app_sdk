@@ -9,7 +9,7 @@ void signal_handler(int sig) {
 int main()
 {
     try {
-        std::thread t1(communication_thread);
+        std::thread t1(AIchat_thread);
         // std::thread t2(gui_thread);
 
         t1.join();

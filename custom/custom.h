@@ -15,7 +15,7 @@ extern "C" {
 
 #include <dirent.h>
 #include <errno.h>
-#include <linux/fcntl.h>
+#include <fcntl.h>
 #include <linux/input.h>
 #include <pthread.h>
 #include <signal.h>

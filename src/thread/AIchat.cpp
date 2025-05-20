@@ -62,7 +62,20 @@ static int audioCallback(const void* inputBuffer, void* outputBuffer,
 
     UserData* data = (UserData*)userData;
     const float* rptr = (const float*)inputBuffer;
-
+    const float gain = 5.0f;
+    
+    // if (isRecording) {
+    //     if (data->isFirstRecording) {
+    //         data->recordingBuffer.clear();
+    //         data->isFirstRecording = false;
+    //     }
+    //     for (unsigned int i = 0; i < framesPerBuffer * 2; i++) {
+    //         // 应用增益并限制在-1.0到1.0之间
+    //         float amplifiedSample = rptr[i] * gain;
+    //         amplifiedSample = std::max(-1.0f, std::min(1.0f, amplifiedSample));
+    //         data->recordingBuffer.push_back(amplifiedSample);
+    //     }
+    // }
     // 1. 始终将音频数据提供给Snowboy
     // for (unsigned int i = 0; i < framesPerBuffer * 2; i++) {
     //     data->snowboyBuffer.push_back(rptr[i]);
@@ -75,9 +88,12 @@ static int audioCallback(const void* inputBuffer, void* outputBuffer,
             data->isFirstRecording = false;
         }
         for (unsigned int i = 0; i < framesPerBuffer * 2; i++) {
-            data->recordingBuffer.push_back(rptr[i]);
+            // 应用增益并限制在-1.0到1.0之间
+            float amplifiedSample = rptr[i] * gain;
+            // amplifiedSample = std::max(-1.0f, std::min(1.0f, amplifiedSample));
+            data->recordingBuffer.push_back(amplifiedSample);
         }
-    } else {
+    }else {
     // 3. 如果刚结束录音，保存文件
         if (!data->isFirstRecording) {
             std::string filename = generateUniqueFilename("recording", ".wav");
@@ -88,7 +104,7 @@ static int audioCallback(const void* inputBuffer, void* outputBuffer,
     return paContinue;
 }
 
-void communication_thread()
+void AIchat_thread()
 {
     PaStream* inputStream;
     UserData userData;
