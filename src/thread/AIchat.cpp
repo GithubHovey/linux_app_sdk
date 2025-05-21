@@ -62,7 +62,7 @@ static int audioCallback(const void* inputBuffer, void* outputBuffer,
 
     UserData* data = (UserData*)userData;
     const float* rptr = (const float*)inputBuffer;
-    const float gain = 5.0f;
+    const float gain = 1.0f;
     
     // if (isRecording) {
     //     if (data->isFirstRecording) {
@@ -133,7 +133,9 @@ void AIchat_thread()
         return ;
     }
     //start stream
-    std::cout << "开始录音... " << std::endl;
+    std::cout << "预热麦克风..." << std::endl;
+    Pa_Sleep(3000);  // 等待3秒
+    std::cout << "开始正式录音" << std::endl;
     err = Pa_StartStream(inputStream);
     if(err != paNoError) {
         std::cerr << "启动流错误: " << Pa_GetErrorText(err) << std::endl;
