@@ -36,6 +36,7 @@ if(SYSTEM_UBUNTU)
         ${CMAKE_SOURCE_DIR}/generated/guider_customer_fonts 
         ${CMAKE_SOURCE_DIR}/generated/guider_fonts
         ${CMAKE_SOURCE_DIR}/generated/images 
+        ${CMAKE_SOURCE_DIR}/lib/AIchat
     )
     link_directories(${CMAKE_SOURCE_DIR}/lib/glibc/libdrm
                      ${CMAKE_SOURCE_DIR}/lib/glibc/libcjson)
@@ -55,6 +56,7 @@ else()
         ${CMAKE_SOURCE_DIR}/generated/guider_customer_fonts 
         ${CMAKE_SOURCE_DIR}/generated/guider_fonts
         ${CMAKE_SOURCE_DIR}/generated/images 
+        ${CMAKE_SOURCE_DIR}/lib/AIchat
     )
     link_directories(${CMAKE_SOURCE_DIR}/lib/uclibc/libdrm
                      ${CMAKE_SOURCE_DIR}/lib/uclibc/libcjson)
