@@ -13,13 +13,13 @@ PortAudioDriver::PortAudioDriver(int sample_rate, int channels, int frame_durati
       recordStream(nullptr),
       isPlaying(false),
       playbackStream(nullptr) {
-        if (!initializeOpus()) {
-            //USER_LOG_ERROR("Failed to initialize Opus encoder/decoder.");
-        }
+        // if (!initializeOpus()) {
+        //     //USER_LOG_ERROR("Failed to initialize Opus encoder/decoder.");
+        // }
 }
 
 PortAudioDriver::~PortAudioDriver() {
-    cleanupOpus();
+    // cleanupOpus();
     clearRecordedAudioQueue();
     clearPlaybackAudioQueue();
     if (isRecording) {

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Option to choose target architecture
-option(TARGET_ARM "Build for ARM architecture" OFF)
+option(TARGET_ARM "Build for ARM architecture" ON)
 
 # Find the architecture
 if(TARGET_ARM)

@@ -113,9 +113,14 @@ file(GLOB GUI_SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
             ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/images/*.c
             ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts/*.c
 )
-message(STATUS "SRC = ${SRC}")  # 打印为 CMake 状态信息（带 -- 前缀）
-message(STATUS "GUI_SRC = ${GUI_SRC}")  # 打印为 CMake 状态信息（带 -- 前缀）
+# message(STATUS "SRC = ${SRC}")  # 打印为 CMake 状态信息（带 -- 前缀）
+# message(STATUS "GUI_SRC = ${GUI_SRC}")  # 打印为 CMake 状态信息（带 -- 前缀）
+
+
 #AICHAT ENABEL
+add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/snowboy)
+
+# set(SNOWBOY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/third_party/snowboy/lib/rpi/libsnowboy-detect.a")
 include_directories( 
         ${CMAKE_SOURCE_DIR}/src/modules/aichat
         ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper
@@ -126,6 +131,8 @@ file(GLOB AICHAT_SRC
             ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper/*.cpp
             
 )
+
+
 
 file(GLOB MCU_COM_SRC
             ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
@@ -178,6 +185,7 @@ target_link_libraries(${PROJECT_NAME}
     drm
     cjson
     portaudio
+    snowboy-detect-c-wrapper
 )
 
 if(SYSTEM_UBUNTU) 

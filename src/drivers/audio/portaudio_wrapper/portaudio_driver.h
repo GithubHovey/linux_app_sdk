@@ -65,7 +65,7 @@ public:
      * @param frame_duration_ms The duration of each frame in milliseconds.
      * @return A queue of audio frames.
      */
-    std::queue<std::vector<int16_t>> loadAudioFromFile(const std::string& filename, int frame_duration_ms);
+    // std::queue<std::vector<int16_t>> loadAudioFromFile(const std::string& filename, int frame_duration_ms);
 
     /**
      * Save any queue of audio data to a PCM file.
@@ -73,14 +73,14 @@ public:
      * @param filename The path to the PCM file.
      * @param audioQueue The queue containing audio data.
      */
-    void saveToPCMFile(const std::string& filename, const std::queue<std::vector<int16_t>>& audioQueue);
+    // void saveToPCMFile(const std::string& filename, const std::queue<std::vector<int16_t>>& audioQueue);
 
-    /**
-     * Save recorded audio to a PCM file.
-     * 
-     * @param filename The path to the PCM file.
-     */
-    void saveToPCMFile(const std::string& filename);
+    // /**
+    //  * Save recorded audio to a PCM file.
+    //  * 
+    //  * @param filename The path to the PCM file.
+    //  */
+    // void saveToPCMFile(const std::string& filename);
 
 
     /**
@@ -91,7 +91,7 @@ public:
      * @param [out] opus_data_size The size of the Opus data.
      * @return true if encoding is successful, false otherwise.
      */
-    bool encode(const std::vector<int16_t>& pcm_frame, uint8_t* opus_data, size_t& opus_data_size);
+    // bool encode(const std::vector<int16_t>& pcm_frame, uint8_t* opus_data, size_t& opus_data_size);
 
     /**
      * Decode Opus data to PCM frame
@@ -101,7 +101,7 @@ public:
      * @param [out] pcm_frame The decoded PCM frame.
      * @return true if decoding is successful, false otherwise.
      */
-    bool decode(const uint8_t* opus_data, size_t opus_data_size, std::vector<int16_t>& pcm_frame);
+    // bool decode(const uint8_t* opus_data, size_t opus_data_size, std::vector<int16_t>& pcm_frame);
 
     /**
      * Pack an Opus frame into a binary protocol frame (for trans via websocket).
@@ -161,10 +161,10 @@ private:
     PaStream* playbackStream;
     bool isPlaying;
 
-    // 初始化编码器、解码器
-    bool initializeOpus();
-    // 释放 Opus 相关资源 编码器、解码器
-    void cleanupOpus();
+    // // 初始化编码器、解码器
+    // bool initializeOpus();
+    // // 释放 Opus 相关资源 编码器、解码器
+    // void cleanupOpus();
 };
 
 #endif 

@@ -1,7 +1,7 @@
 #pragma once
 #include "module.h"
 #include "portaudio_driver.h"
-#include "snowboy-detect.h"
+#include "snowboy-detect-c-wrapper.h"
 // void AIchat_thread();
 class AIchat : public Module {
 public:
@@ -9,7 +9,8 @@ public:
     const std::string& resource_filename,const std::string& model_str
     ):
     port_audio_driver(sample_rate, channels, frame_duration),
-    snowboy_detector(resource_filename, model_str)
+    resource_filename(resource_filename),
+    model_str(model_str)
     {
 
     }
@@ -27,9 +28,10 @@ protected:
 
     // PortAudio 驱动
     PortAudioDriver port_audio_driver;
-
+    std::string resource_filename;
+    std::string model_str;
     // Snowboy 语音检测器
-    snowboy::SnowboyDetect snowboy_detector;
+    // snowboy::SnowboyDetect snowboy_detector;
     // 语音检测标志
-    bool hotwordDetected;
+    // bool hotwordDetected;
 };

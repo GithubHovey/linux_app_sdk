@@ -2,11 +2,9 @@
 // #ifdef AICHAT_MODULE_ENABLE
 
 // #endif
-
-#include <thread>
+#include "utils.h"
 #include <atomic>
 #include <string>
-#include <mutex>
 #include <condition_variable>
 
 class Module {
@@ -17,11 +15,15 @@ public:
     // 初始化模块
     virtual bool init();
 
-    // // 启动模块线程
-    // void start();
+    // 启动模块线程
+    virtual void start(){
+        startThread();
+    }
 
-    // // 停止模块线程
-    // void stop();
+    // 停止模块线程
+    virtual void stop(){
+        stopThread(); 
+    }
 
     // // 获取模块名称
     // std::string getName() const;
@@ -35,9 +37,13 @@ protected:
 
     // 线程控制
     std::thread thread;
-    std::atomic<bool> running;
 
     // 互斥锁和条件变量（可选，根据需要使用）
     std::mutex mutex;
-    std::condition_variable cv;
+    // std::condition_variable cv;
+    std::atomic<bool> _thread_running{false};
+
+    void startThread();
+
+    void stopThread();
 };
