@@ -37,49 +37,99 @@ if(SYSTEM_UBUNTU)
         ${CMAKE_SOURCE_DIR}/generated/guider_fonts
         ${CMAKE_SOURCE_DIR}/generated/images 
         ${CMAKE_SOURCE_DIR}/lib/AIchat
+
+        ${CMAKE_SOURCE_DIR}/src/nodes
+        ${CMAKE_SOURCE_DIR}/src/modules
+        ${CMAKE_SOURCE_DIR}/src/drivers
+        ${CMAKE_SOURCE_DIR}/src/hal
+        ${CMAKE_SOURCE_DIR}/src/utils
+        ${CMAKE_SOURCE_DIR}/third_party
     )
     link_directories(${CMAKE_SOURCE_DIR}/lib/glibc/libdrm
                      ${CMAKE_SOURCE_DIR}/lib/glibc/libcjson)
     set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
 else()
     include_directories( 
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/src/thread
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/include/uclibc/drm
-        ${CMAKE_SOURCE_DIR}/include/uclibc/cjson
-        ${CMAKE_SOURCE_DIR}/lib
-        ${CMAKE_SOURCE_DIR}/lib/lvgl
-        ${CMAKE_SOURCE_DIR}/lib/lv_drivers
-        ${CMAKE_SOURCE_DIR}/custom 
-        ${CMAKE_SOURCE_DIR}/generated 
-        ${CMAKE_SOURCE_DIR}/generated/guider_customer_fonts 
-        ${CMAKE_SOURCE_DIR}/generated/guider_fonts
-        ${CMAKE_SOURCE_DIR}/generated/images 
-        ${CMAKE_SOURCE_DIR}/lib/AIchat
+        ${CMAKE_SOURCE_DIR}/src/nodes
+        ${CMAKE_SOURCE_DIR}/src/modules
+        ${CMAKE_SOURCE_DIR}/src/drivers
+        ${CMAKE_SOURCE_DIR}/src/hal
+        ${CMAKE_SOURCE_DIR}/src/utils
+        ${CMAKE_SOURCE_DIR}/third_party
+        # ${CMAKE_SOURCE_DIR}/include
+        # ${CMAKE_SOURCE_DIR}/include/uclibc/drm
+        # ${CMAKE_SOURCE_DIR}/include/uclibc/cjson
+        # ${CMAKE_SOURCE_DIR}/lib
+        # ${CMAKE_SOURCE_DIR}/lib/lvgl
+        # ${CMAKE_SOURCE_DIR}/lib/lv_drivers
+        # ${CMAKE_SOURCE_DIR}/custom 
+        # ${CMAKE_SOURCE_DIR}/generated 
+        # ${CMAKE_SOURCE_DIR}/generated/guider_customer_fonts 
+        # ${CMAKE_SOURCE_DIR}/generated/guider_fonts
+        # ${CMAKE_SOURCE_DIR}/generated/images 
+        # ${CMAKE_SOURCE_DIR}/lib/AIchat
     )
-    link_directories(${CMAKE_SOURCE_DIR}/lib/uclibc/libdrm
-                     ${CMAKE_SOURCE_DIR}/lib/uclibc/libcjson)
+    # link_directories(${CMAKE_SOURCE_DIR}/lib/uclibc/libdrm
+    #                  ${CMAKE_SOURCE_DIR}/lib/uclibc/libcjson)
     SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) 
     SET(CMAKE_INSTALL_RPATH "/usr/lib")
 endif()
 
 # lvgl
-add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lvgl EXCLUDE_FROM_ALL)
-add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lv_drivers EXCLUDE_FROM_ALL)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lvgl EXCLUDE_FROM_ALL)
+# add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lv_drivers EXCLUDE_FROM_ALL)
+
 
 
 file(GLOB SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
-            ${CMAKE_SOURCE_DIR}/src/thread/*.cpp
-            ${CMAKE_SOURCE_DIR}/custom/*.c
-            ${CMAKE_SOURCE_DIR}/generated/*.c
-            ${CMAKE_SOURCE_DIR}/generated/images/*.c
-            ${CMAKE_SOURCE_DIR}/generated/guider_fonts/*.c
-            ${CMAKE_SOURCE_DIR}/lib/communication/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/nodes/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/drivers/**/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/hal/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/hal/*.c
+            ${CMAKE_SOURCE_DIR}/src/utils/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/utils/*.c
+)
+#if GUI ENABEL
+
+include_directories( 
+        ${CMAKE_SOURCE_DIR}/src/modules/gui
+        ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2
+        ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl
+        ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl/src
+        ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl/font
+        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/custom 
+        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated 
+        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_customer_fonts 
+        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts
+        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/images 
+    )
+add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl EXCLUDE_FROM_ALL)
+file(GLOB GUI_SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/custom/*.c
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/*.c
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/images/*.c
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts/*.c
+)
+message(STATUS "SRC = ${SRC}")  # 打印为 CMake 状态信息（带 -- 前缀）
+message(STATUS "GUI_SRC = ${GUI_SRC}")  # 打印为 CMake 状态信息（带 -- 前缀）
+#AICHAT ENABEL
+include_directories( 
+        ${CMAKE_SOURCE_DIR}/src/modules/aichat
+        # ${CMAKE_SOURCE_DIR}/src/modules/aichat/nxp_guiguider/custom 
+    )
+file(GLOB AICHAT_SRC
+            ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
+)
+
+file(GLOB MCU_COM_SRC
+            ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
 )
 
 add_executable(${PROJECT_NAME} 
             ${SRC}
+            ${GUI_SRC}
+            ${AICHAT_SRC}
     )
 # debug
 add_compile_options(-fPIC -Wall -O3 -g0)
@@ -117,8 +167,8 @@ else()
 endif()
 
 target_link_libraries(${PROJECT_NAME}
-    #PRIVATE lvgl_examples
-    PRIVATE lvgl::drivers
+    PRIVATE lvgl
+    # PRIVATE lvgl::drivers
     pthread
     drm
     cjson

@@ -1,10 +1,12 @@
-#include "robot_thread.h"
+#include "utils.h"
 
-
+extern "C" {
 #include "lvgl/lvgl.h"
-#include "lv_drivers/display/drm.h"
-#include "lv_drivers/display/fbdev.h"
-#include "lv_drivers/indev/evdev.h"
+#include "drm.h"
+#include "fbdev.h"
+#include "evdev.h"
+}
+
 
 #include <unistd.h>
 #include <pthread.h>
