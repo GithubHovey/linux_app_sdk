@@ -83,6 +83,8 @@ endif()
 
 file(GLOB SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
             ${CMAKE_SOURCE_DIR}/src/nodes/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/modules/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/drivers/*.cpp
             ${CMAKE_SOURCE_DIR}/src/drivers/**/*.cpp
             ${CMAKE_SOURCE_DIR}/src/hal/*.cpp
             ${CMAKE_SOURCE_DIR}/src/hal/*.c
@@ -116,10 +118,13 @@ message(STATUS "GUI_SRC = ${GUI_SRC}")  # 打印为 CMake 状态信息（带 -- 
 #AICHAT ENABEL
 include_directories( 
         ${CMAKE_SOURCE_DIR}/src/modules/aichat
-        # ${CMAKE_SOURCE_DIR}/src/modules/aichat/nxp_guiguider/custom 
+        ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper
+        ${CMAKE_SOURCE_DIR}/third_party/snowboy/include
     )
 file(GLOB AICHAT_SRC
             ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
+            ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper/*.cpp
+            
 )
 
 file(GLOB MCU_COM_SRC

@@ -1,6 +1,6 @@
+#include "AIchat.h"
 #include "utils.h"
-#include <portaudio.h>
-#include <vector>
+
 #include <fstream>
 #include <sstream>
 #include <cstring>
@@ -9,6 +9,11 @@
 #include <unistd.h>
 #include <atomic>
 #include <iomanip>
+
+bool AIchat::init(void){
+    return true;
+}
+
 std::atomic<bool> isRecording(false);
 std::atomic<bool> shouldExit(false);
 #define SAMPLE_RATE 16000
@@ -17,14 +22,7 @@ std::atomic<bool> shouldExit(false);
 #define PA_SAMPLE_TYPE paInt16
 typedef short SAMPLE;
 
-extern volatile int QUIT_FLAG;
-// void voice_thread() {
-//     std::cout << "voice_thread running..." << std::endl;
-
-//     while (!QUIT_FLAG) {
-//         std::this_thread::sleep_for(std::chrono::seconds(2));
-//     }
-// }
+// extern volatile int QUIT_FLAG;
 struct UserData {
     std::vector<float> snowboyBuffer;  // 持续给Snowboy的缓冲区
     std::vector<float> recordingBuffer; // 录音缓冲区
@@ -63,19 +61,6 @@ static int audioCallback(const void* inputBuffer, void* outputBuffer,
     UserData* data = (UserData*)userData;
     const float* rptr = (const float*)inputBuffer;
     const float gain = 1.0f;
-    
-    // if (isRecording) {
-    //     if (data->isFirstRecording) {
-    //         data->recordingBuffer.clear();
-    //         data->isFirstRecording = false;
-    //     }
-    //     for (unsigned int i = 0; i < framesPerBuffer * 2; i++) {
-    //         // 应用增益并限制在-1.0到1.0之间
-    //         float amplifiedSample = rptr[i] * gain;
-    //         amplifiedSample = std::max(-1.0f, std::min(1.0f, amplifiedSample));
-    //         data->recordingBuffer.push_back(amplifiedSample);
-    //     }
-    // }
     // 1. 始终将音频数据提供给Snowboy
     // for (unsigned int i = 0; i < framesPerBuffer * 2; i++) {
     //     data->snowboyBuffer.push_back(rptr[i]);
@@ -104,66 +89,66 @@ static int audioCallback(const void* inputBuffer, void* outputBuffer,
     return paContinue;
 }
 
-void AIchat_thread()
-{
-    PaStream* inputStream;
-    UserData userData;
-    const std::string BASE_FILENAME = "recording";
-    const std::string FILE_EXTENSION = ".wav";
+// void AIchat_thread()
+// {
+//     PaStream* inputStream;
+//     UserData userData;
+//     const std::string BASE_FILENAME = "recording";
+//     const std::string FILE_EXTENSION = ".wav";
 
-    std::thread keyboardThread(keyboardListener);
-    //port audio init
-    PaError err = Pa_Initialize();
-    if(err != paNoError) {
-        std::cerr << "PortAudio初始化错误: " << Pa_GetErrorText(err) << std::endl;
-        return ;
-    }
-    //open stream
-    err = Pa_OpenDefaultStream(&inputStream, 
-        NUM_CHANNELS, // 输入通道数
-        0,            // 无输出
-        paFloat32,    
-        SAMPLE_RATE,
-        FRAMES_PER_BUFFER,
-        audioCallback,
-        &userData);
-    if(err != paNoError) {
-        std::cerr << "打开输入流错误: " << Pa_GetErrorText(err) << std::endl;
-        Pa_Terminate();
-        return ;
-    }
-    //start stream
-    std::cout << "预热麦克风..." << std::endl;
-    Pa_Sleep(3000);  // 等待3秒
-    std::cout << "开始正式录音" << std::endl;
-    err = Pa_StartStream(inputStream);
-    if(err != paNoError) {
-        std::cerr << "启动流错误: " << Pa_GetErrorText(err) << std::endl;
-        Pa_CloseStream(inputStream);
-        Pa_Terminate();
-        return ;
-    }
-    std::cout << "程序运行中... 按住R键录音,释放停止并保存" << std::endl;
-    std::cout << "按Ctrl+C退出程序" << std::endl;
+//     std::thread keyboardThread(keyboardListener);
+//     //port audio init
+//     PaError err = Pa_Initialize();
+//     if(err != paNoError) {
+//         std::cerr << "PortAudio初始化错误: " << Pa_GetErrorText(err) << std::endl;
+//         return ;
+//     }
+//     //open stream
+//     err = Pa_OpenDefaultStream(&inputStream, 
+//         NUM_CHANNELS, // 输入通道数
+//         0,            // 无输出
+//         paFloat32,    
+//         SAMPLE_RATE,
+//         FRAMES_PER_BUFFER,
+//         audioCallback,
+//         &userData);
+//     if(err != paNoError) {
+//         std::cerr << "打开输入流错误: " << Pa_GetErrorText(err) << std::endl;
+//         Pa_Terminate();
+//         return ;
+//     }
+//     //start stream
+//     std::cout << "预热麦克风..." << std::endl;
+//     Pa_Sleep(3000);  // 等待3秒
+//     std::cout << "开始正式录音" << std::endl;
+//     err = Pa_StartStream(inputStream);
+//     if(err != paNoError) {
+//         std::cerr << "启动流错误: " << Pa_GetErrorText(err) << std::endl;
+//         Pa_CloseStream(inputStream);
+//         Pa_Terminate();
+//         return ;
+//     }
+//     std::cout << "程序运行中... 按住R键录音,释放停止并保存" << std::endl;
+//     std::cout << "按Ctrl+C退出程序" << std::endl;
 
-    while (!QUIT_FLAG) {
-        // 这里可以添加Snowboy的处理逻辑
-        // 例如: snowboy->RunDetection(userData.snowboyBuffer.data(), userData.snowboyBuffer.size()/2);
+//     while (!QUIT_FLAG) {
+//         // 这里可以添加Snowboy的处理逻辑
+//         // 例如: snowboy->RunDetection(userData.snowboyBuffer.data(), userData.snowboyBuffer.size()/2);
         
-        // 清空Snowboy缓冲区(模拟处理)
-        // if (userData.snowboyBuffer.size() > SAMPLE_RATE) { // 保持约1秒的缓冲区
-        //     userData.snowboyBuffer.erase(userData.snowboyBuffer.begin(), 
-        //                                userData.snowboyBuffer.end() - SAMPLE_RATE * 2);
-        // }
+//         // 清空Snowboy缓冲区(模拟处理)
+//         // if (userData.snowboyBuffer.size() > SAMPLE_RATE) { // 保持约1秒的缓冲区
+//         //     userData.snowboyBuffer.erase(userData.snowboyBuffer.begin(), 
+//         //                                userData.snowboyBuffer.end() - SAMPLE_RATE * 2);
+//         // }
         
-        Pa_Sleep(10);
-    }
+//         Pa_Sleep(10);
+//     }
 
-    err = Pa_StopStream(inputStream);
-    Pa_CloseStream(inputStream);
-    shouldExit = true;
-    keyboardThread.join();
-}
+//     err = Pa_StopStream(inputStream);
+//     Pa_CloseStream(inputStream);
+//     shouldExit = true;
+//     keyboardThread.join();
+// }
 
 // 非阻塞键盘输入检测
 void keyboardListener() {
@@ -245,4 +230,15 @@ std::string generateUniqueFilename(const std::string& baseName, const std::strin
     } while (fileExists(filename));
     
     return filename;
+}
+
+
+void AIchat::moduleThreadFunc()
+{
+    port_audio_driver.startRecording();
+    while (!quit_flag)
+    {
+
+    }
+    port_audio_driver.stopRecording();
 }
