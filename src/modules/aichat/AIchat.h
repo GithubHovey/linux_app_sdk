@@ -13,9 +13,11 @@ public:
     resource_filename(resource_filename),
     model_str(model_str)
     {
-
+        detector = SnowboyDetectConstructor(this->resource_filename.c_str(),this->model_str.c_str());
     }
-    ~AIchat()override{};
+    ~AIchat()override{
+        SnowboyDetectDestructor(detector);
+    };
     bool init() override ;
 protected:
     // 模块线程函数
@@ -31,6 +33,7 @@ protected:
     PortAudioDriver port_audio_driver;
     std::string resource_filename;
     std::string model_str;
+    SnowboyDetect* detector;
     // Snowboy 语音检测器
     // snowboy::SnowboyDetect snowboy_detector;
     // 语音检测标志

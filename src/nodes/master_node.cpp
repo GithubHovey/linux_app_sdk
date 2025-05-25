@@ -10,10 +10,15 @@ void signal_handler(int sig) {
 }
 int main()
 {
-    std::shared_ptr<spdlog::logger> main_logger = spdlog::basic_logger_mt("main_logger", "logs/main.log");
+    /*-------log init---------*/ 
+    spdlog::set_pattern("[%H:%M:%S] [%n] [%l] %v");  // 设置日志格式
+    spdlog::flush_every(std::chrono::seconds(3));
+    // std::shared_ptr<spdlog::logger> main_logger = spdlog::basic_logger_mt("main_logger", "logs/main.log");
+
+    /*-------module init---------*/ 
     ModuleManager fangfang_module_manager;
     fangfang_module_manager.addModule(std::make_shared<AIchat>
-        ("aichat", 16000, 1, 40, "./config/snowboy/common.res", "./config/snowboy/common.pdml"));
+        ("aichat", 16000, 1, 40, "./config/snowboy/common.res", "./config/snowboy/snowboy.umdl"));
     fangfang_module_manager.startAll();
     while (!QUIT_FLAG) {
         // if (getExitSignal()) break;

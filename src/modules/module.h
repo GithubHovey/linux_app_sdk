@@ -13,6 +13,9 @@ public:
     name(name)
     {
         logger = spdlog::basic_logger_mt(name, "logs/" + name + ".log");
+        logger->set_level(spdlog::level::debug);  // 允许info及以上级别
+        logger->info("---------------");
+        logger->info("module initing...");
     }
     virtual ~Module(){}
 

@@ -11,6 +11,7 @@
 #include <iomanip>
 
 bool AIchat::init(void){
+   
     return true;
 }
 
@@ -236,9 +237,34 @@ std::string generateUniqueFilename(const std::string& baseName, const std::strin
 void AIchat::moduleThreadFunc()
 {
     port_audio_driver.startRecording();
+    SnowboyDetectSetSensitivity(detector, "0.5");
+    SnowboyDetectSetAudioGain(detector, 1);
+    SnowboyDetectApplyFrontend(detector, false);
+    std::vector<int16_t> data;
+    logger->info("AIchat::moduleThreadFunc start.");
+    // logger->flush();
+    std::cout << "[cout]AIchat::moduleThreadFunc start." << std::endl;
     while (!quit_flag)
     {
 
+       
+        // while (state_running_.load() == true) {
+            if(port_audio_driver.recordedQueueIsEmpty() == false) {
+                port_audio_driver.getRecordedAudio(data);
+                // 检测唤醒词
+                int result = SnowboyDetectRunDetection(detector, data.data(), data.size(), false);
+                if (result > 0) {
+                    // 发生唤醒事件
+                    logger->warn("Wake detected.");
+                    std::cout << "[cout]Wake detected." << std::endl;
+                    // eventQueue_.Enqueue(static_cast<int>(AppEvent::wake_detected));
+                    // break;
+                }
+            }
+        // }
+        
+
     }
     port_audio_driver.stopRecording();
+    
 }
