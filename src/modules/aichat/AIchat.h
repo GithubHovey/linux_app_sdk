@@ -5,9 +5,10 @@
 // void AIchat_thread();
 class AIchat : public Module {
 public:
-    AIchat(int sample_rate, int channels, int frame_duration,
+    AIchat(const std::string& name, int sample_rate, int channels, int frame_duration,
     const std::string& resource_filename,const std::string& model_str
     ):
+    Module(name),
     port_audio_driver(sample_rate, channels, frame_duration),
     resource_filename(resource_filename),
     model_str(model_str)

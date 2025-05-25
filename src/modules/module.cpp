@@ -1,14 +1,13 @@
 #include "module.h"
 
-Module::Module(){
-
-}
-
-Module::~Module(){
-
-}
 bool Module::init(){
     return true;
+}
+void Module::start(){
+    startThread();
+}
+void Module::stop(){
+    stopThread(); 
 }
 void Module::moduleThreadFunc(){
 

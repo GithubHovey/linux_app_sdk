@@ -9,6 +9,7 @@ public:
     void startAll() {
         for (auto& module : this->module_list) {
             module->init();  // 内部调用 startThread()
+            module->start();
         }
     }
 

@@ -10,30 +10,17 @@ void signal_handler(int sig) {
 }
 int main()
 {
+    std::shared_ptr<spdlog::logger> main_logger = spdlog::basic_logger_mt("main_logger", "logs/main.log");
     ModuleManager fangfang_module_manager;
     fangfang_module_manager.addModule(std::make_shared<AIchat>
-        (16000, 1, 40, "third_party/snowboy/resources/common.res", "third_party/snowboy/resources/common.pdml"));
+        ("aichat", 16000, 1, 40, "./config/snowboy/common.res", "./config/snowboy/common.pdml"));
     fangfang_module_manager.startAll();
     while (!QUIT_FLAG) {
         // if (getExitSignal()) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     fangfang_module_manager.stopAll();
-    // int sample_rate = 16000;
-    // int channels = 1;
-    // int frame_duration = 40;
-    // AIchat *fangfang_ai = new AIchat(sample_rate, channels, frame_duration,
-    // "third_party/snowboy/resources/common.res","third_party/snowboy/resources/common.pdml" );
-    // try {
-    //     std::thread t1(AIchat_thread);
-    //     // std::thread t2(gui_thread);
 
-    //     t1.join();
-    //     // t2.join();
-    // } catch (const std::exception& e) {
-    //     std::cerr << "Fatal error: " << e.what() << std::endl;
-    //     return EXIT_FAILURE;
-    // }
     return 0;
 }
 

@@ -80,6 +80,7 @@ endif()
 # add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lv_drivers EXCLUDE_FROM_ALL)
 
 
+find_package(spdlog REQUIRED)
 
 file(GLOB SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
             ${CMAKE_SOURCE_DIR}/src/nodes/*.cpp
@@ -180,6 +181,7 @@ endif()
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE lvgl
+    PRIVATE spdlog::spdlog
     # PRIVATE lvgl::drivers
     pthread
     drm
