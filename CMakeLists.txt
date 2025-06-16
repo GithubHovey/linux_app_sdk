@@ -1,88 +1,47 @@
 cmake_minimum_required(VERSION 3.10)
+include(${CMAKE_BINARY_DIR}/kconfig.cmake)
 
-set(SDK_PATH $ENV{LUCKFOX_SDK_PATH})
-set(GLIBC_COMPILER $ENV{GLIBC_COMPILER})
-# set(SYSROOT "${SDK_PATH}/sysdrv/source/buildroot/buildroot-2023.02.6/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot")
-set(CMAKE_SYSROOT ${SDK_PATH}/sysdrv/source/buildroot/buildroot-2023.02.6/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot)
-if(NOT SDK_PATH)
-    message(WARNING "Please Set Luckfox-pico SDK Path. Such as:export LUCKFOX_SDK_PATH=/home/user/luckfox-pico")
-    if (NOT GLIBC_COMPILER) 
-        message(WARNING "Please Set arm32 glibc compiler Path. Such as:export GLIBC_COMPILER=/opt/arm-linux-gnueabihf/bin/arm-linux-gnueabihf-")
-        return()
-    else()
-        set(CMAKE_C_COMPILER    "${GLIBC_COMPILER}gcc")
-        set(CMAKE_CXX_COMPILER  "${GLIBC_COMPILER}g++")
-        option(SYSTEM_UBUNTU "Compiled for Ubuntu systems" ON)
+if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
+    # Check and set sysroot
+    if(NOT EXISTS ${CROSS_COMPILER_SYSROOT_PATH})
+        message(FATAL_ERROR "Sysroot path does not exist: ${CROSS_COMPILER_SYSROOT_PATH}")
     endif()
-else()
-    set(CMAKE_C_COMPILER "${SDK_PATH}/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-gcc")
-    set(CMAKE_CXX_COMPILER "${SDK_PATH}/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-g++")
-endif()
+    set(CMAKE_SYSROOT ${CROSS_COMPILER_SYSROOT_PATH})
+    set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})  # 将 SYSROOT 设为搜索根路径
+    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)  # 只在 ROOT_PATH 下搜索头文件
+    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)  # 只在 ROOT_PATH 下搜索库
+    message(STATUS "Sysroot Path: ${CMAKE_SYSROOT}")
 
-project(robot.exe)
+    # Check and set C compiler
+    if(NOT EXISTS ${CROSS_COMPILER_C_PATH})
+        message(FATAL_ERROR "C compiler path does not exist: ${CROSS_COMPILER_C_PATH}")
+    endif()
+    set(CMAKE_C_COMPILER ${CROSS_COMPILER_C_PATH})
+    message(STATUS "C Compiler Path: ${CMAKE_C_COMPILER} (verified)")
 
-if(SYSTEM_UBUNTU)
-    include_directories( 
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/include/glibc/drm
-        ${CMAKE_SOURCE_DIR}/include/glibc/drm/libdrm
-        ${CMAKE_SOURCE_DIR}/include/glibc/cjson
-        ${CMAKE_SOURCE_DIR}/lib
-        ${CMAKE_SOURCE_DIR}/lib/lvgl
-        ${CMAKE_SOURCE_DIR}/lib/lv_drivers
-        ${CMAKE_SOURCE_DIR}/custom 
-        ${CMAKE_SOURCE_DIR}/generated 
-        ${CMAKE_SOURCE_DIR}/generated/guider_customer_fonts 
-        ${CMAKE_SOURCE_DIR}/generated/guider_fonts
-        ${CMAKE_SOURCE_DIR}/generated/images 
-        ${CMAKE_SOURCE_DIR}/lib/AIchat
+    # Check and set C++ compiler
+    if(NOT EXISTS ${CROSS_COMPILER_CPP_PATH})
+        message(FATAL_ERROR "C++ compiler path does not exist: ${CROSS_COMPILER_CPP_PATH}")
+    endif()
+    set(CMAKE_CXX_COMPILER ${CROSS_COMPILER_CPP_PATH})
+    message(STATUS "C++ Compiler Path: ${CMAKE_CXX_COMPILER} (verified)")
 
-        ${CMAKE_SOURCE_DIR}/src/nodes
-        ${CMAKE_SOURCE_DIR}/src/modules
-        ${CMAKE_SOURCE_DIR}/src/drivers
-        ${CMAKE_SOURCE_DIR}/src/hal
-        ${CMAKE_SOURCE_DIR}/src/utils
-        ${CMAKE_SOURCE_DIR}/third_party
+    project(robot.exe)
+    #pkgconfig
+    set(ENV{PKG_CONFIG_PATH} "${CMAKE_SYSROOT}/usr/lib/pkgconfig")
+    find_package(PkgConfig REQUIRED)
+    #cjson
+    # pkg_check_modules(CJSON REQUIRED libcjson)
+    include_directories(
+        ${CMAKE_SYSROOT}/usr/include/cjson
     )
-    link_directories(${CMAKE_SOURCE_DIR}/lib/glibc/libdrm
-                     ${CMAKE_SOURCE_DIR}/lib/glibc/libcjson)
-    set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
-else()
-    include_directories( 
-        ${CMAKE_SOURCE_DIR}/src/nodes
-        ${CMAKE_SOURCE_DIR}/src/modules
-        ${CMAKE_SOURCE_DIR}/src/drivers
-        ${CMAKE_SOURCE_DIR}/src/hal
-        ${CMAKE_SOURCE_DIR}/src/utils
-        ${CMAKE_SOURCE_DIR}/third_party
-        # ${CMAKE_SOURCE_DIR}/include
-        # ${CMAKE_SOURCE_DIR}/include/uclibc/drm
-        # ${CMAKE_SOURCE_DIR}/include/uclibc/cjson
-        # ${CMAKE_SOURCE_DIR}/lib
-        # ${CMAKE_SOURCE_DIR}/lib/lvgl
-        # ${CMAKE_SOURCE_DIR}/lib/lv_drivers
-        # ${CMAKE_SOURCE_DIR}/custom 
-        # ${CMAKE_SOURCE_DIR}/generated 
-        # ${CMAKE_SOURCE_DIR}/generated/guider_customer_fonts 
-        # ${CMAKE_SOURCE_DIR}/generated/guider_fonts
-        # ${CMAKE_SOURCE_DIR}/generated/images 
-        # ${CMAKE_SOURCE_DIR}/lib/AIchat
-    )
-    # link_directories(${CMAKE_SOURCE_DIR}/lib/uclibc/libdrm
-    #                  ${CMAKE_SOURCE_DIR}/lib/uclibc/libcjson)
-    SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) 
-    SET(CMAKE_INSTALL_RPATH "/usr/lib")
-endif()
 
-# lvgl
-# add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lvgl EXCLUDE_FROM_ALL)
-# add_subdirectory(${CMAKE_SOURCE_DIR}/lib/lv_drivers EXCLUDE_FROM_ALL)
-
-
-find_package(spdlog REQUIRED)
-
-file(GLOB SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
+    #日志系统
+    find_package(spdlog REQUIRED)
+    message(STATUS "spdlog include dirs: ${spdlog_INCLUDE_DIRS}")
+    message(STATUS "spdlog libraries: ${spdlog_LIBRARIES}")
+    #架构源码路径
+    file(GLOB SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
             ${CMAKE_SOURCE_DIR}/src/nodes/*.cpp
             ${CMAKE_SOURCE_DIR}/src/modules/*.cpp
             ${CMAKE_SOURCE_DIR}/src/drivers/*.cpp
@@ -91,110 +50,82 @@ file(GLOB SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
             ${CMAKE_SOURCE_DIR}/src/hal/*.c
             ${CMAKE_SOURCE_DIR}/src/utils/*.cpp
             ${CMAKE_SOURCE_DIR}/src/utils/*.c
-)
-#if GUI ENABEL
-
-include_directories( 
-        ${CMAKE_SOURCE_DIR}/src/modules/gui
-        ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2
-        ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl
-        ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl/src
-        ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl/font
-        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/custom 
-        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated 
-        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_customer_fonts 
-        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts
-        ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/images 
     )
-add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl EXCLUDE_FROM_ALL)
-file(GLOB GUI_SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/*.cpp
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/custom/*.c
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/*.c
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/images/*.c
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts/*.c
-)
-# message(STATUS "SRC = ${SRC}")  # 打印为 CMake 状态信息（带 -- 前缀）
-# message(STATUS "GUI_SRC = ${GUI_SRC}")  # 打印为 CMake 状态信息（带 -- 前缀）
-
-
-#AICHAT ENABEL
-add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/snowboy)
-
-# set(SNOWBOY_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/third_party/snowboy/lib/rpi/libsnowboy-detect.a")
-include_directories( 
-        ${CMAKE_SOURCE_DIR}/src/modules/aichat
-        ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper
-        ${CMAKE_SOURCE_DIR}/third_party/snowboy/include
+    #架构基本目录
+    include_directories( 
+        ${CMAKE_SOURCE_DIR}/src/nodes
+        ${CMAKE_SOURCE_DIR}/src/modules
+        ${CMAKE_SOURCE_DIR}/src/drivers
+        ${CMAKE_SOURCE_DIR}/src/hal
+        ${CMAKE_SOURCE_DIR}/src/utils
+        ${CMAKE_SOURCE_DIR}/third_party
     )
-file(GLOB AICHAT_SRC
-            ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
-            ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper/*.cpp
-            
-)
+    #GUI
+    # pkg_check_modules(LIBDRM REQUIRED libdrm)
+    include_directories(
+        ${CMAKE_SYSROOT}/usr/include/libdrm
+    )
+    include_directories(      
+            ${CMAKE_SOURCE_DIR}/src/modules/gui
+            ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2
+            ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl
+            ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl/src
+            ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl/font
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/custom 
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated 
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_customer_fonts 
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts
+            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/images 
+    )
+    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl EXCLUDE_FROM_ALL)
+    file(GLOB GUI_SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
+                ${CMAKE_SOURCE_DIR}/src/modules/gui/*.cpp
+                ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/custom/*.c
+                ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/*.c
+                ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/images/*.c
+                ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts/*.c
+    )
+    #AICHAT ENABEL
+    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/snowboy)
+    include_directories( 
+            ${CMAKE_SOURCE_DIR}/src/modules/aichat
+            ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper
+            ${CMAKE_SOURCE_DIR}/third_party/snowboy/include
+        )
+    file(GLOB AICHAT_SRC
+                ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
+                ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper/*.cpp
+                
+    )
 
-
-
-file(GLOB MCU_COM_SRC
-            ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
-)
-
-add_executable(${PROJECT_NAME} 
+    add_executable(${PROJECT_NAME} 
             ${SRC}
             ${GUI_SRC}
             ${AICHAT_SRC}
     )
-# debug
-add_compile_options(-fPIC -Wall -O3 -g0)
-# warnning
-add_compile_options(
-    -Wall -Wshadow -Wundef -Wmissing-prototypes -Wno-discarded-qualifiers -Wall -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wpointer-arith 
-    -fno-strict-aliasing -Wno-error=cpp -Wuninitialized -Wmaybe-uninitialized -Wno-unused-parameter -Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess 
-    -Wno-format-nonliteral -Wno-cast-qual -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wformat-security -Wno-ignored-qualifiers -Wno-error=pedantic 
-    -Wno-sign-compare -Wno-error=missing-prototypes -Wdouble-promotion -Wclobbered -Wdeprecated -Wempty-body -Wtype-limits -Wshift-negative-value -Wstack-usage=2048 
-    -Wno-unused-value -Wno-unused-parameter -Wno-missing-field-initializers -Wuninitialized -Wmaybe-uninitialized -Wall -Wextra -Wno-unused-parameter 
-    -Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess -Wno-format-nonliteral -Wpointer-arith -Wno-cast-qual -Wmissing-prototypes 
-    -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wno-discarded-qualifiers -Wformat-security -Wno-ignored-qualifiers -Wno-sign-compare -std=c99
-)
-
-if(SYSTEM_UBUNTU)
-    target_include_directories(${PROJECT_NAME} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/glibc/drm
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/glibc/cjson
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/lvgl/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/lvgl/font
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/communication
+    # debug
+    add_compile_options(-fPIC -Wall -O3 -g0)
+    # warnning
+    add_compile_options(
+        -Wall -Wshadow -Wundef -Wmissing-prototypes -Wno-discarded-qualifiers -Wall -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wpointer-arith 
+        -fno-strict-aliasing -Wno-error=cpp -Wuninitialized -Wmaybe-uninitialized -Wno-unused-parameter -Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess 
+        -Wno-format-nonliteral -Wno-cast-qual -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wformat-security -Wno-ignored-qualifiers -Wno-error=pedantic 
+        -Wno-sign-compare -Wno-error=missing-prototypes -Wdouble-promotion -Wclobbered -Wdeprecated -Wempty-body -Wtype-limits -Wshift-negative-value -Wstack-usage=2048 
+        -Wno-unused-value -Wno-unused-parameter -Wno-missing-field-initializers -Wuninitialized -Wmaybe-uninitialized -Wall -Wextra -Wno-unused-parameter 
+        -Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess -Wno-format-nonliteral -Wpointer-arith -Wno-cast-qual -Wmissing-prototypes 
+        -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wno-discarded-qualifiers -Wformat-security -Wno-ignored-qualifiers -Wno-sign-compare -std=c99
+    )
+    #link
+    target_link_libraries(${PROJECT_NAME}
+        PRIVATE lvgl
+        PRIVATE spdlog::spdlog
+        pthread
+        # ${LIBDRM_LIBRARIES}
+        drm
+        cjson
+        portaudio
+        snowboy-detect-c-wrapper
     )
 else()
-    target_include_directories(${PROJECT_NAME} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/uclibc/drm
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/uclibc/cjson
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/lvgl/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/lvgl/font
-        ${CMAKE_CURRENT_SOURCE_DIR}/lib/communication
-    )
-endif()
-
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE lvgl
-    PRIVATE spdlog::spdlog
-    # PRIVATE lvgl::drivers
-    pthread
-    drm
-    cjson
-    portaudio
-    snowboy-detect-c-wrapper
-)
-
-if(SYSTEM_UBUNTU) 
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/install/${PROJECT_NAME}")
-    install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX})
-    file(GLOB LIBCJSON_FILES "${CMAKE_CURRENT_SOURCE_DIR}/lib/glibc/libcjson/*.so*")  
-    file(GLOB LIBDRM_FILES "${CMAKE_CURRENT_SOURCE_DIR}/lib/glibc/libdrm/*.so*")  
-    install(FILES ${LIBCJSON_FILES} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)                    
-    install(FILES ${LIBDRM_FILES}   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)                    
+    message(FATAL_ERROR "Cross-compilation toolchain not properly configured. Please set up the toolchain before proceeding.")
 endif()

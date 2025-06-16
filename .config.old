@@ -1,0 +1,17 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# Configuration
+#
+
+#
+# Toolchain Configuration
+#
+CONFIG_CROSS_COMPILE_ENABLED=y
+CONFIG_CROSS_COMPILER_SYSROOT_PATH="/home/hovey/workspace/luckfox/sdk/luckfox-pico/sysdrv/source/buildroot/buildroot-2023.02.6/output/host/arm-buildroot-linux-uclibcgnueabihf/sysroot"
+CONFIG_CROSS_COMPILER_C_PATH="/home/hovey/workspace/luckfox/sdk/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-gcc"
+CONFIG_CROSS_COMPILER_CPP_PATH="/home/hovey/workspace/luckfox/sdk/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-g++"
+
+#
+# Output Configuration
+#
+CONFIG_BUILD_DIR_NAME="build"

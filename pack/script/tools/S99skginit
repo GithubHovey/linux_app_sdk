@@ -1,0 +1,12 @@
+#!/bin/bash
+ifconfig eth0 192.168.2.100 up
+echo "ip addr is 192.168.2.100"
+APP_SCRIPT="/root/app/app.sh"
+
+if [ -f "$APP_SCRIPT" ] && [ -x "$APP_SCRIPT" ]; then
+   	echo "app.sh start"
+	bash "$APP_SCRIPT" start
+else
+    echo "error：$APP_SCRPT is not exist."
+    exit 1
+fi

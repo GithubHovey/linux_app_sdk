@@ -1,5 +1,5 @@
-# *.o
-.vscode
-build/
-install/
-
+.vscode/
+build*/
+.continue
+pack/app/
+pack/out/

@@ -1,0 +1,36 @@
+menu "Toolchain Configuration"
+config CROSS_COMPILE_ENABLED
+    bool "Enable cross compilation"
+    default y
+    help
+      Enable cross-compilation toolchain configuration
+
+config CROSS_COMPILER_SYSROOT_PATH
+    depends on CROSS_COMPILE_ENABLED
+    string "Sysroot path"
+    default ""
+    help
+      Path to the sysroot directory for cross-compilation
+
+config CROSS_COMPILER_C_PATH
+    depends on CROSS_COMPILE_ENABLED
+    string "C compiler path"
+    default ""
+    help
+      Full path to the C cross-compiler
+
+config CROSS_COMPILER_CPP_PATH
+    depends on CROSS_COMPILE_ENABLED
+    string "C++ compiler path"
+    default ""
+    help
+      Full path to the C++ cross-compiler
+endmenu
+
+menu "Output Configuration"
+config BUILD_DIR_NAME
+    string "Build directory name (e.g. build or build_xx)"
+    default "build"
+    help
+      Name of the build directory (e.g. build or build_xx)
+endmenu
