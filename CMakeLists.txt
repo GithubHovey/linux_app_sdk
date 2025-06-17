@@ -86,17 +86,17 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
                 ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts/*.c
     )
     #AICHAT ENABEL
-    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/snowboy)
-    include_directories( 
-            ${CMAKE_SOURCE_DIR}/src/modules/aichat
-            ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper
-            ${CMAKE_SOURCE_DIR}/third_party/snowboy/include
-        )
-    file(GLOB AICHAT_SRC
-                ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
-                ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper/*.cpp
+    # add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/snowboy)
+    # include_directories( 
+    #         ${CMAKE_SOURCE_DIR}/src/modules/aichat
+    #         ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper
+    #         ${CMAKE_SOURCE_DIR}/third_party/snowboy/include
+    #     )
+    # file(GLOB AICHAT_SRC
+    #             ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
+    #             ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper/*.cpp
                 
-    )
+    # )
 
     add_executable(${PROJECT_NAME} 
             ${SRC}
@@ -123,8 +123,8 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
         # ${LIBDRM_LIBRARIES}
         drm
         cjson
-        portaudio
-        snowboy-detect-c-wrapper
+        # portaudio
+        # snowboy-detect-c-wrapper
     )
 else()
     message(FATAL_ERROR "Cross-compilation toolchain not properly configured. Please set up the toolchain before proceeding.")

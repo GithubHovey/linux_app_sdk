@@ -1,6 +1,6 @@
 #include "utils.h"
 #include "module_manager.h"
-#include "AIchat.h"
+// #include "AIchat.h"
 #include <csignal>
 volatile int QUIT_FLAG = 0;
 //static char* TSDEV="/dev/input/event0";
@@ -12,13 +12,14 @@ int main()
 {
     /*-------log init---------*/ 
     spdlog::set_pattern("[%H:%M:%S] [%n] [%l] %v");  // 设置日志格式
-    spdlog::flush_every(std::chrono::seconds(3));
+    spdlog::flush_every(std::chrono::seconds(3)); //每3s写入一次日志
     // std::shared_ptr<spdlog::logger> main_logger = spdlog::basic_logger_mt("main_logger", "logs/main.log");
 
     /*-------module init---------*/ 
     ModuleManager fangfang_module_manager;
-    fangfang_module_manager.addModule(std::make_shared<AIchat>
-        ("aichat", 16000, 1, 40, "./config/snowboy/common.res", "./config/snowboy/snowboy.umdl"));
+    // fangfang_module_manager.addModule(std::make_shared<AIchat>
+    //     ("aichat", 16000, 1, 40, "./config/snowboy/common.res", "./config/snowboy/snowboy.umdl"));
+    // fangfang_module_manager.addModule()
     fangfang_module_manager.startAll();
     while (!QUIT_FLAG) {
         // if (getExitSignal()) break;
