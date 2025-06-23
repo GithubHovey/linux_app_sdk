@@ -1,0 +1,31 @@
+menu "hal interfaces setting"
+config USE_V4L2
+    bool "enable v4l2 interface"
+    default "n"
+    help
+      to do
+
+config USE_DRM
+    bool "enable drm interface"
+    default "n"
+    help
+      to do
+
+config USE_FBDEV
+    bool "enable fbdev interface"
+    default "n"
+    help
+      to do
+
+config USE_UART
+    bool "enable uart interface"
+    default "n"
+    help
+      to do
+
+config USE_EVDEV
+    bool "enable evdev interface"
+    default "n"
+    help
+      to do
+endmenu

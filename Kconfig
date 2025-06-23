@@ -1,3 +1,4 @@
+mainmenu "Project Config"
 menu "Toolchain Configuration"
 config CROSS_COMPILE_ENABLED
     bool "Enable cross compilation"
@@ -27,10 +28,13 @@ config CROSS_COMPILER_CPP_PATH
       Full path to the C++ cross-compiler
 endmenu
 
-menu "Output Configuration"
 config BUILD_DIR_NAME
     string "Build directory name (e.g. build or build_xx)"
     default "build"
     help
       Name of the build directory (e.g. build or build_xx)
-endmenu
+
+source "src/hal/Kconfig"
+source "src/drivers/Kconfig"
+source "src/modules/Kconfig"
+

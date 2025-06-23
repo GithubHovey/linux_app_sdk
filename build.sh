@@ -10,10 +10,16 @@ pack_flag=OFF
 
 # Functions
 usage() {
-  echo "Usage: $0 [-s] [-p]"
-  echo "  -s: Compile for simulator"
-  echo "  -p: Package only (no compilation)"
-  
+  echo "Usage: $0 [-s] [-p] [-m]"
+  echo "Options:"
+  echo "  -s    Compile for simulator (Ubuntu system)"
+  echo "  -p    Package only (no compilation)"
+  echo "  -m    Launch Kconfig menu configuration"
+  echo ""
+  echo "Default behavior (no flags):"
+  echo "  - Creates build directory"
+  echo "  - Generates kconfig.cmake"
+  echo "  - Performs cross-compilation for rv1106"
   exit 1
 }
 

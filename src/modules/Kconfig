@@ -1,0 +1,25 @@
+menu "Module Configuration"
+menu "Module GUI"
+config USE_MODULE_GUI
+    bool "enable gui module"
+    default "n"
+    help
+    to do
+endmenu
+
+menu "Module AIchat"
+config USE_MODULE_AICHAT
+    bool "enable aichat module"
+    default "n"
+    help
+    to do
+endmenu
+
+menu "Module VISION"
+config USE_MODULE_VISION
+    bool "enable vison module"
+    default "n"
+    help
+    to do
+endmenu
+endmenu
