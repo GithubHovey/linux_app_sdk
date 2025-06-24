@@ -2,6 +2,7 @@
 #include "yamlconfig.h"
 #include "module_manager.h"
 // #include "AIchat.h"
+#include "vision.h"
 #include <csignal>
 volatile int QUIT_FLAG = 0;
 //static char* TSDEV="/dev/input/event0";
@@ -28,16 +29,16 @@ int main(int argc, char** argv)
     // std::shared_ptr<spdlog::logger> main_logger = spdlog::basic_logger_mt("main_logger", "logs/main.log");
 
     /*3.模块初始化*/ 
-    ModuleManager fangfang_module_manager;
-    // fangfang_module_manager.addModule(std::make_shared<AIchat>
+    ModuleManager module_manager;
+    // module_manager.addModule(std::make_shared<AIchat>
     //     ("aichat", 16000, 1, 40, "./config/snowboy/common.res", "./config/snowboy/snowboy.umdl"));
-    // fangfang_module_manager.addModule()
-    fangfang_module_manager.startAll();
+    module_manager.addModule(std::make_shared<Vision>("vision center"));
+    module_manager.startAll();
     while (!QUIT_FLAG) {
         // if (getExitSignal()) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    fangfang_module_manager.stopAll();
+    module_manager.stopAll();
 
     return 0;
 }

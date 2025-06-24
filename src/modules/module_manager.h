@@ -8,6 +8,7 @@ public:
 
     void startAll() {
         for (auto& module : this->module_list) {
+            module->load_from_config();
             module->init();  // 内部调用 startThread()
             module->start();
         }

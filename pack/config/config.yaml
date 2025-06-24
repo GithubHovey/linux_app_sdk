@@ -1,0 +1,74 @@
+# ======================
+# Vision 模块配置
+# ======================
+vision:
+  camera_list:
+    # 相机1配置
+    camera1:
+      enable: true
+      device: "/dev/video0"
+      width: 1920
+      height: 1020
+      fps: 30
+      record_processed:
+        enable: false
+        path: "logs/modules/vision/camera0/record/raw_data"
+        max_size: 100 #MB
+        save_mode: "video" #录制保存方式：1.video 编码视频  2.images 图片集
+
+      traditional_vision:
+        enable: true
+        record_processed:
+          enable: true
+          path: "logs/modules/vision/camera0/record/tradition_cv"
+          max_size: 100 #MB
+          save_mode: "video"  # or "images"
+        other_params: {}  # 其他传统视觉参数
+
+      yolo:
+        enable: true
+        record_detection:
+          enable: true
+          path: "logs/modules/vision/camera0/record/yolo"
+          max_size: 100 #MB
+          save_mode: "video"  # or "images"
+        model_path: "/models/yolov8n.pt"
+        detection_threshold: 0.65
+        other_params: {}  # 其他YOLO参数
+
+    # 相机2配置
+    camera2:
+      enable: true
+      device: "/dev/video1"
+      width: 1920
+      height: 1020
+      fps: 25
+      record_processed:
+        enable: false
+        path: "logs/modules/vision/camera1/record/raw_data"
+        max_size: 100 #MB
+        save_mode: "video" #录制保存方式：1.video 编码视频  2.images 图片集
+      traditional_vision:
+        enable: false
+        record_processed:
+          enable: false
+          path: "logs/modules/vision/camera1/record/tradition_cv"
+          max_size: 100 #MB
+          save_mode: "video"
+        other_params: {}
+
+      yolo:
+        enable: true
+        record_detection:
+          enable: true
+          path: "logs/modules/vision/camera1/record/yolo"
+          max_size: 100 #MB
+          save_mode: "images"
+        model_path: "/models/yolov8s.pt"
+        detection_threshold: 0.7
+        other_params: {}
+
+  # 全局参数
+  advanced:
+    max_video_duration: 3600
+    debug_mode: false

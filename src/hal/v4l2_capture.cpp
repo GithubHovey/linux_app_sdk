@@ -10,36 +10,61 @@
 #include <iostream>
 
 V4L2Capture::V4L2Capture(const std::string& device)
-    : device_path_(device), fd_(-1), is_streaming_(false),
-      width_(0), height_(0), pixel_format_(0) {}
+    : device_path_(device), fd_(-1), is_streaming_(false)
+    {
+        logger = spdlog::basic_logger_mt(device, "logs/devices/v4l2_dev.log");
+        logger->set_level(spdlog::level::debug);  // 允许info及以上级别
+        logger->info("---------------");
+        logger->info("v4l2 devices register...");
+    }
 
 V4L2Capture::~V4L2Capture() {
-    if (is_streaming_) stopStream();
+    if (is_streaming_) StopStream();
     if (fd_ != -1) close();
 }
 
-bool V4L2Capture::open() {
+bool V4L2Capture::Open() {
     if (isOpened()) return true;
 
     fd_ = ::open(device_path_.c_str(), O_RDWR | O_NONBLOCK);
     if (fd_ < 0) {
+        logger->error("open {} fail!",device_path_);
         return false;
     }
-
+    logger->info("open {} success!", device_path_);
+    return true;
+}
     // 查询设备能力
+bool V4L2Capture::CheckCap()
+{
     v4l2_capability cap;
     if (ioctl(fd_, VIDIOC_QUERYCAP, &cap) == -1) {
         ::close(fd_);
         fd_ = -1;
         return false;
     }
-
+    logger->info("Driver Name:{}\nCard Name:{}\nBus info:{}\nDriver Version:{}.{}.{}\n"
+        ,reinterpret_cast<const char*>(cap.driver),reinterpret_cast<const char*>(cap.card),reinterpret_cast<const char*>(cap.bus_info),(cap.version>>16)&0XFF, (cap.version>>8)&0XFF,cap.version&0XFF);
     if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
         ::close(fd_);
         fd_ = -1;
+        logger->error("no V4L2_CAP_VIDEO_CAPTURE cap!");
         return false;
     }
+    return true;
+}
 
+bool V4L2Capture::CheckSupportFormat()
+{
+    struct v4l2_fmtdesc fmtdesc; 
+    fmtdesc.index=0; 
+    fmtdesc.type=V4L2_BUF_TYPE_VIDEO_CAPTURE; 
+    logger->info("Support format:");
+    while(ioctl(fd_, VIDIOC_ENUM_FMT, &fmtdesc) != -1)
+    {
+        logger->info("\t{}.{}", fmtdesc.index + 1, reinterpret_cast<const char*>(fmtdesc.description));
+        fmtdesc.index++;
+    }
     return true;
 }
 
@@ -95,7 +120,7 @@ std::vector<V4L2Capture::PixelFormat> V4L2Capture::enumFormats() const {
     return formats;
 }
 
-bool V4L2Capture::setFormat(uint32_t width, uint32_t height, uint32_t pixfmt) {
+bool V4L2Capture::SetFormat(uint32_t width, uint32_t height, uint32_t pixfmt) {
     if (!isOpened()) return false;
 
     v4l2_format fmt = {};
@@ -113,15 +138,10 @@ bool V4L2Capture::setFormat(uint32_t width, uint32_t height, uint32_t pixfmt) {
     if (fmt.fmt.pix.pixelformat != pixfmt) {
         return false;
     }
-
-    width_ = fmt.fmt.pix.width;
-    height_ = fmt.fmt.pix.height;
-    pixel_format_ = fmt.fmt.pix.pixelformat;
-
     return true;
 }
 
-bool V4L2Capture::getFormat(uint32_t& width, uint32_t& height, uint32_t& pixfmt) const {
+bool V4L2Capture::GetFormat(uint32_t& width, uint32_t& height, uint32_t& pixfmt) const {
     if (!isOpened()) return false;
 
     v4l2_format fmt = {};
@@ -138,13 +158,37 @@ bool V4L2Capture::getFormat(uint32_t& width, uint32_t& height, uint32_t& pixfmt)
     return true;
 }
 
-bool V4L2Capture::startStream(uint32_t buffer_count) {
-    if (!isOpened() || is_streaming_) return false;
+bool V4L2Capture::SetFrameRate(uint32_t fps) {
+    if (!isOpened() || fps == 0) return false;
 
-    if (!initBuffers(buffer_count)) {
+    v4l2_streamparm parm = {};
+    parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+    // 获取当前参数
+    if (ioctl(fd_, VIDIOC_G_PARM, &parm) == -1) {
+        logger->error("ioctl :VIDIOC_G_PARM fail.");
         return false;
     }
 
+    // 检查是否支持帧率设置
+    if (!(parm.parm.capture.capability & V4L2_CAP_TIMEPERFRAME)) {
+        logger->error("not support fps configuration");
+        return false;
+    }
+
+    // 设置帧率 (fps = 1/timeperframe)
+    parm.parm.capture.timeperframe.numerator = 1;
+    parm.parm.capture.timeperframe.denominator = fps;
+
+    if (ioctl(fd_, VIDIOC_S_PARM, &parm) == -1) {
+        return false;
+    }
+    
+    return true;
+}
+
+bool V4L2Capture::StartStream(uint32_t buffer_count) {
+    if (!isOpened() || is_streaming_) return false;
     // 将所有缓冲区加入队列
     for (uint32_t i = 0; i < buffers_.size(); ++i) {
         v4l2_buffer buf = {};
@@ -166,10 +210,11 @@ bool V4L2Capture::startStream(uint32_t buffer_count) {
     }
 
     is_streaming_ = true;
+    logger->info("start stream ...");
     return true;
 }
 
-bool V4L2Capture::stopStream() {
+bool V4L2Capture::StopStream() {
     if (!is_streaming_) return true;
 
     v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -266,7 +311,7 @@ bool V4L2Capture::getControl(uint32_t ctrl_id, int32_t& value) const {
     return true;
 }
 
-bool V4L2Capture::initBuffers(uint32_t buffer_count) {
+bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
     if (buffer_count < 2) return false;
 
     // 请求缓冲区

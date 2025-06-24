@@ -1,5 +1,9 @@
 #include "module.h"
 
+bool Module::load_from_config(){
+    return true;
+}
+
 bool Module::init(){
     return true;
 }

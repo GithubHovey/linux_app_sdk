@@ -143,6 +143,9 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
             list(APPEND VISION_SRC ${CMAKE_SOURCE_DIR}/src/hal/v4l2_capture.cpp)
 
         endif()
+        target_sources(${PROJECT_NAME} PRIVATE
+            ${VISION_SRC}
+        )
     endif()
 
 else()

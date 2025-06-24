@@ -1,25 +1,33 @@
 #pragma once
 #include "module.h"
-#include "portaudio_driver.h"
-#include "snowboy-detect-c-wrapper.h"
-// void AIchat_thread();
+#include "camera.h"
 class Vision : public Module {
 public:
-    Vision(const std::string& name, int sample_rate, int channels, int frame_duration,
-    const std::string& resource_filename,const std::string& model_str
-    ):
-    Module(name),
-    port_audio_driver(sample_rate, channels, frame_duration),
-    resource_filename(resource_filename),
-    model_str(model_str)
+    // struct Unit {  // 嵌套在Vision类中的结构体
+    //         Camera camera; 
+    //         std::vector<int> resolution;
+    //         int fps;
+    //         bool record_processed;
+    //         // 其他相机参数...
+    //     };
+    Vision(const std::string& name):
+    Module(name)
     {
-        detector = SnowboyDetectConstructor(this->resource_filename.c_str(),this->model_str.c_str());
+
     }
     ~Vision()override{
-        SnowboyDetectDestructor(detector);
+
     };
+    bool load_from_config() override ;
     bool init() override ;
+private:
+    std::vector<std::unique_ptr<Camera>> camera_list;
+    void capture_thread();
+    void tradition_cv_thread();
+    void yolo_detection_thread();
+    void record_thread();
 protected:
     // 模块线程函数
     void moduleThreadFunc() override ;
+ 
 };

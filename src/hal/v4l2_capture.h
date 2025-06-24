@@ -1,10 +1,7 @@
 #ifndef V4L2_CAPTURE_H
 #define V4L2_CAPTURE_H
 
-#include <string>
-#include <vector>
-#include <memory>
-#include <cstdint>
+#include "utils.h"
 #include <linux/videodev2.h>
 
 class V4L2Capture {
@@ -40,21 +37,25 @@ public:
     V4L2Capture& operator=(const V4L2Capture&) = delete;
 
     // 设备操作
-    bool open();
+    bool Open();
     void close();
     bool isOpened() const;
-
+    
+    bool CheckCap();
+    bool CheckSupportFormat();
+    bool InitBuffers(uint32_t buffer_count);
     // 设备信息
     DeviceInfo queryDeviceInfo() const;
     std::vector<PixelFormat> enumFormats() const;
 
     // 格式设置
-    bool setFormat(uint32_t width, uint32_t height, uint32_t pixfmt);
-    bool getFormat(uint32_t& width, uint32_t& height, uint32_t& pixfmt) const;
+    bool SetFormat(uint32_t width, uint32_t height, uint32_t pixfmt);
+    bool GetFormat(uint32_t& width, uint32_t& height, uint32_t& pixfmt) const;
+    bool SetFrameRate(uint32_t fps);
 
     // 流控制
-    bool startStream(uint32_t buffer_count = 4);
-    bool stopStream();
+    bool StartStream(uint32_t buffer_count = 4);
+    bool StopStream();
     bool isStreaming() const;
 
     // 帧捕获
@@ -72,16 +73,13 @@ private:
         uint32_t index;
     };
 
-    bool initBuffers(uint32_t buffer_count);
+    
     void cleanupBuffers();
-
+    std::shared_ptr<spdlog::logger> logger;
     std::string device_path_;
     int fd_;
     bool is_streaming_;
     std::vector<Buffer> buffers_;
-    uint32_t width_;
-    uint32_t height_;
-    uint32_t pixel_format_;
 };
 
 #endif // V4L2_CAPTURE_H

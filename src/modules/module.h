@@ -3,9 +3,10 @@
 
 // #endif
 #include "utils.h"
+#include "yamlconfig.h"
 #include <atomic>
-#include <string>
 #include <condition_variable>
+
 
 class Module {
 public:
@@ -19,17 +20,18 @@ public:
     }
     virtual ~Module(){}
 
+    // 实例化模块类
+    virtual bool load_from_config() = 0;
     // 初始化模块
-    virtual bool init();
+    virtual bool init() = 0;
 
     // 启动模块线程
-    virtual void start();
+    void start();
 
     // 停止模块线程
-    virtual void stop();
+    void stop();
 
     // // 获取模块名称
-    // std::string getName() const;
 
 protected:
     volatile uint8_t quit_flag;
@@ -42,7 +44,7 @@ protected:
     std::mutex mutex;
     std::atomic<bool> _thread_running{false};
     // 模块线程函数（子类需要实现）
-    virtual void moduleThreadFunc();
+    virtual void moduleThreadFunc() = 0;
  private:   
     void startThread();
     void stopThread();
