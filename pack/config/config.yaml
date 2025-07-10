@@ -38,7 +38,7 @@ vision:
 
     # 相机2配置
     camera2:
-      enable: true
+      enable: false
       device: "/dev/video1"
       width: 1920
       height: 1020

@@ -9,10 +9,10 @@
 #include <sstream>
 #include <iostream>
 
-V4L2Capture::V4L2Capture(const std::string& device)
+V4L2Capture::V4L2Capture(const std::string& device, std::string logfile)
     : device_path_(device), fd_(-1), is_streaming_(false)
     {
-        logger = spdlog::basic_logger_mt(device, "logs/devices/v4l2_dev.log");
+        logger = spdlog::basic_logger_mt(device, logfile);
         logger->set_level(spdlog::level::debug);  // 允许info及以上级别
         logger->info("---------------");
         logger->info("v4l2 devices register...");
@@ -190,7 +190,7 @@ bool V4L2Capture::SetFrameRate(uint32_t fps) {
 bool V4L2Capture::StartStream(uint32_t buffer_count) {
     if (!isOpened() || is_streaming_) return false;
     // 将所有缓冲区加入队列
-    for (uint32_t i = 0; i < buffers_.size(); ++i) {
+    for (uint32_t i = 0; i < buffer_list.size(); ++i) {
         v4l2_buffer buf = {};
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
@@ -231,7 +231,7 @@ bool V4L2Capture::isStreaming() const {
     return is_streaming_;
 }
 
-bool V4L2Capture::captureFrame(Frame& frame, uint32_t timeout_ms) {
+bool V4L2Capture::captureFrame(Buffer& buffer, struct timeval & timestamp, uint32_t timeout_ms) {
     if (!is_streaming_) return false;
 
     fd_set fds;
@@ -254,27 +254,28 @@ bool V4L2Capture::captureFrame(Frame& frame, uint32_t timeout_ms) {
         return false;
     }
 
-    if (buf.index >= buffers_.size()) {
+    if (buf.index >= buffer_list.size()) {
         // 异常情况，重新加入队列
         ioctl(fd_, VIDIOC_QBUF, &buf);
         return false;
     }
-
-    frame.data = buffers_[buf.index].start;
-    frame.size = buf.bytesused;
-    frame.index = buf.index;
-    frame.timestamp = buf.timestamp;
+    buffer = buffer_list[buf.index];
+    timestamp = buf.timestamp;
+    // frame.data = buffer_list[buf.index].start;
+    // frame.size = buf.bytesused;
+    // frame.index = buf.index;
+    // frame.timestamp = buf.timestamp;
 
     return true;
 }
 
-bool V4L2Capture::returnFrame(const Frame& frame) {
+bool V4L2Capture::returnFrame(uint32_t index) {
     if (!is_streaming_) return false;
 
     v4l2_buffer buf = {};
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
-    buf.index = frame.index;
+    buf.index = index;
 
     if (ioctl(fd_, VIDIOC_QBUF, &buf) == -1) {
         return false;
@@ -328,7 +329,7 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
         return false;
     }
 
-    buffers_.resize(req.count);
+    buffer_list.resize(req.count);
 
     // 映射缓冲区
     for (uint32_t i = 0; i < req.count; ++i) {
@@ -342,14 +343,14 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
             return false;
         }
 
-        buffers_[i].start = mmap(nullptr, buf.length,
+        buffer_list[i].start = mmap(nullptr, buf.length,
                                 PROT_READ | PROT_WRITE,
                                 MAP_SHARED,
                                 fd_, buf.m.offset);
-        buffers_[i].length = buf.length;
-        buffers_[i].index = i;
+        buffer_list[i].length = buf.length;
+        buffer_list[i].index = i;
 
-        if (buffers_[i].start == MAP_FAILED) {
+        if (buffer_list[i].start == MAP_FAILED) {
             cleanupBuffers();
             return false;
         }
@@ -359,10 +360,10 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
 }
 
 void V4L2Capture::cleanupBuffers() {
-    for (auto& buffer : buffers_) {
+    for (auto& buffer : buffer_list) {
         if (buffer.start != nullptr && buffer.start != MAP_FAILED) {
             munmap(buffer.start, buffer.length);
         }
     }
-    buffers_.clear();
+    buffer_list.clear();
 }

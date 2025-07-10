@@ -10,6 +10,7 @@ bool Vision::load_from_config() {
         if (cam_config["enable"].as<bool>()) {
             auto camera = std::make_unique<Camera>(
                 cam_config["device"].as<std::string>(),
+                logfile,
                 cam_config["width"].as<uint32_t>(),
                 cam_config["height"].as<uint32_t>(),
                 cam_config["fps"].as<uint32_t>()
@@ -30,6 +31,8 @@ bool Vision::init()
         if(camera) {                // 检查指针有效性
             int ret = camera->init();
             if(ret != 0) return false;
+            std::thread t(&Camera::CaptureThread, camera.get());
+            t.detach();
         }
     }
     return true;
@@ -37,7 +40,16 @@ bool Vision::init()
 
 void Vision::moduleThreadFunc()
 {
+    for(auto& camera : camera_list)
+    {
+        if(camera) {                // 检查指针有效性
+            // int ret = camera->init();
+        }
+    }
+    while(!quit_flag)
+    {
 
+    }
 }
 
 void Vision::capture_thread()

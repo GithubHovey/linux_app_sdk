@@ -62,7 +62,32 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
             ${SRC}
             ${AICHAT_SRC}
     )
+    #rkmedia test
+    include_directories( 
+        ${CMAKE_SYSROOT}/usr/include/easymedia
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/uAPI
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/xcore
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/common
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/algos
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/iq_parser
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/ipc_server
+        ${CMAKE_SOURCE_DIR}/src/nodes/test/
+    )
 
+    file(GLOB RKMEDIA_TEST_SRC
+        ${CMAKE_SOURCE_DIR}/src/nodes/test/rkmedia_vi_rga_test.c
+        ${CMAKE_SOURCE_DIR}/src/nodes/test/sample_common_isp.c
+    )
+    add_executable(rkmedia_test ${RKMEDIA_TEST_SRC})
+    target_link_libraries(rkmedia_test PRIVATE
+        easymedia
+        rkaiq
+        pthread
+    )
+    target_compile_definitions(rkmedia_test PRIVATE
+    RKAIQ
+    )
+    #define  RKAIQ
     #link
     target_link_libraries(${PROJECT_NAME} PRIVATE
         pthread
@@ -140,11 +165,16 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
                 ${CMAKE_SOURCE_DIR}/src/drivers/camera
             )
         if("${USE_V4L2}" STREQUAL "y")
-            list(APPEND VISION_SRC ${CMAKE_SOURCE_DIR}/src/hal/v4l2_capture.cpp)
+            list(APPEND VISION_SRC ${CMAKE_SOURCE_DIR}/src/hal/v4l2_capture.cpp
+                                     ${CMAKE_SOURCE_DIR}/src/hal/rkcapture.cpp)
 
         endif()
         target_sources(${PROJECT_NAME} PRIVATE
             ${VISION_SRC}
+        )
+        target_compile_definitions(${PROJECT_NAME} PRIVATE
+        USE_RKMEDIA
+        RKAIQ
         )
     endif()
 

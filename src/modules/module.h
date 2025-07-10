@@ -13,7 +13,8 @@ public:
     Module(const std::string& name):
     name(name)
     {
-        logger = spdlog::basic_logger_mt(name, "logs/" + name + ".log");
+        logfile = "logs/" + name + ".log";
+        logger = spdlog::basic_logger_mt(name, logfile);
         logger->set_level(spdlog::level::debug);  // 允许info及以上级别
         logger->info("---------------");
         logger->info("module initing...");
@@ -43,6 +44,7 @@ protected:
     std::thread thread;
     std::mutex mutex;
     std::atomic<bool> _thread_running{false};
+    std::string logfile;
     // 模块线程函数（子类需要实现）
     virtual void moduleThreadFunc() = 0;
  private:   

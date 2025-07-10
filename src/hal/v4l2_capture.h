@@ -6,14 +6,6 @@
 
 class V4L2Capture {
 public:
-    // 帧数据结构
-    struct Frame {
-        void* data;
-        size_t size;
-        uint32_t index;
-        struct timeval timestamp;
-    };
-
     // 设备信息
     struct DeviceInfo {
         std::string driver;
@@ -29,7 +21,13 @@ public:
         std::string description;
     };
 
-    explicit V4L2Capture(const std::string& device = "/dev/video0");
+        struct Buffer {
+        void* start;
+        size_t length;
+        uint32_t index;
+    };
+
+    explicit V4L2Capture(const std::string& device, std::string logfile);
     ~V4L2Capture();
 
     // 禁止拷贝
@@ -59,19 +57,15 @@ public:
     bool isStreaming() const;
 
     // 帧捕获
-    bool captureFrame(Frame& frame, uint32_t timeout_ms = 5000);
-    bool returnFrame(const Frame& frame);
+    bool captureFrame(Buffer& buffer, struct timeval & timestamp, uint32_t timeout_ms = 5000);
+    bool returnFrame(uint32_t index);
 
     // 控制接口
     bool setControl(uint32_t ctrl_id, int32_t value);
     bool getControl(uint32_t ctrl_id, int32_t& value) const;
 
 private:
-    struct Buffer {
-        void* start;
-        size_t length;
-        uint32_t index;
-    };
+
 
     
     void cleanupBuffers();
@@ -79,7 +73,7 @@ private:
     std::string device_path_;
     int fd_;
     bool is_streaming_;
-    std::vector<Buffer> buffers_;
+    std::vector<Buffer> buffer_list;
 };
 
 #endif // V4L2_CAPTURE_H

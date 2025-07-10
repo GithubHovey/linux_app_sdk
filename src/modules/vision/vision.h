@@ -1,6 +1,7 @@
 #pragma once
 #include "module.h"
 #include "camera.h"
+#include "rga/im2d.hpp"
 class Vision : public Module {
 public:
     // struct Unit {  // 嵌套在Vision类中的结构体
