@@ -15,6 +15,8 @@
 #include <time.h>
 #include <unistd.h>
 
+
+
 #define MAX_AIQ_CTX 4
 static rk_aiq_sys_ctx_t *g_aiq_ctx[MAX_AIQ_CTX];
 static pthread_mutex_t aiq_ctx_mutex[MAX_AIQ_CTX] = {
@@ -871,4 +873,5 @@ rk_aiq_uapi_sysctl_setCrop(aiq_ctx, rect);*/
   pthread_mutex_unlock(&aiq_ctx_mutex[CamId]);
   return ret;
 }
+
 #endif
