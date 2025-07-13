@@ -8,8 +8,9 @@ vision:
       enable: true
       device: "/dev/video0"
       width: 1920
-      height: 1020
+      height: 1080
       fps: 30
+      format: "rgb888"
       record_processed:
         enable: false
         path: "logs/modules/vision/camera0/record/raw_data"
@@ -41,7 +42,7 @@ vision:
       enable: false
       device: "/dev/video1"
       width: 1920
-      height: 1020
+      height: 1080
       fps: 25
       record_processed:
         enable: false

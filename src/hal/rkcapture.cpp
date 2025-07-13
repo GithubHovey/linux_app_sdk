@@ -110,8 +110,6 @@ int RKCapture::returnFrame(uint8_t index) {
 }
 int RKCapture::StopStream()
 {
-    // //   printf("%s exit!\n", __func__);
-    // pthread_join(read_thread, NULL);
     RK_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
     RK_MPI_RGA_DestroyChn(0);
     RK_MPI_VI_DisableChn(deviceId, 1);
