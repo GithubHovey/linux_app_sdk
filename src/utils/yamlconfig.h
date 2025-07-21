@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
-
+#include <iostream>
 class Config {
 public:
     // 删除拷贝构造和赋值操作

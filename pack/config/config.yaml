@@ -2,72 +2,94 @@
 # Vision 模块配置
 # ======================
 vision:
+  name: "vision"
+  log_path: "./logs/modules/vision.log"
   camera_list:
-    # 相机1配置
     camera1:
       enable: true
-      device: "/dev/video0"
-      width: 1920
-      height: 1080
-      fps: 30
-      format: "rgb888"
-      record_processed:
-        enable: false
-        path: "logs/modules/vision/camera0/record/raw_data"
-        max_size: 100 #MB
-        save_mode: "video" #录制保存方式：1.video 编码视频  2.images 图片集
-
-      traditional_vision:
-        enable: true
-        record_processed:
+      name: "imx307"
+      channel_list:
+        channel1:
           enable: true
-          path: "logs/modules/vision/camera0/record/tradition_cv"
-          max_size: 100 #MB
-          save_mode: "video"  # or "images"
-        other_params: {}  # 其他传统视觉参数
-
-      yolo:
-        enable: true
-        record_detection:
-          enable: true
-          path: "logs/modules/vision/camera0/record/yolo"
-          max_size: 100 #MB
-          save_mode: "video"  # or "images"
-        model_path: "/models/yolov8n.pt"
-        detection_threshold: 0.65
-        other_params: {}  # 其他YOLO参数
-
-    # 相机2配置
+          name: "rkispp_scale0"
+          bufcnt: 10
+          width: 1920
+          height: 1080
+          fps: 60
+          fmt: "rgb888"
+          rotation: 0
+          fix_width: 640
+          fix_height: 640
+        channel2:
+          enable: false
+          name: "rkisp_scard2"
+          bufcnt: 10
+          width: 1920
+          height: 1080
+          fps: 60
+          fmt: "rgb888"
+          rotation: 0
+          # fix_width: 640
+          # fix_height: 640
     camera2:
       enable: false
-      device: "/dev/video1"
-      width: 1920
-      height: 1080
-      fps: 25
-      record_processed:
-        enable: false
-        path: "logs/modules/vision/camera1/record/raw_data"
-        max_size: 100 #MB
-        save_mode: "video" #录制保存方式：1.video 编码视频  2.images 图片集
-      traditional_vision:
-        enable: false
-        record_processed:
-          enable: false
-          path: "logs/modules/vision/camera1/record/tradition_cv"
-          max_size: 100 #MB
-          save_mode: "video"
-        other_params: {}
-
-      yolo:
-        enable: true
-        record_detection:
+      name: "ov13580"
+      channel_list:
+        channel1:
           enable: true
-          path: "logs/modules/vision/camera1/record/yolo"
-          max_size: 100 #MB
-          save_mode: "images"
-        model_path: "/models/yolov8s.pt"
-        detection_threshold: 0.7
-        other_params: {}
+          name: "rkisp_scard3"
+          bufcnt: 10
+          width: 1920
+          height: 1080
+          fps: 60
+          fmt: "rgb888"
+          rotation: 0
+          # fix_width: 640
+          # fix_height: 640
+
+
+      # yolo:
+      #   enable: true
+      #   record_detection:
+      #     enable: truezhe y
+      #     path: "logs/modules/vision/camera0/record/yolo"
+      #     max_size: 100 #MB
+      #     save_mode: "video"  # or "images"
+      #   model_path: "/models/yolov8n.pt"
+      #   detection_threshold: 0.65
+      #   other_params: {}  # 其他YOLO参数
+
+    # 相机2配置
+    # camera2:
+    #   enable: false
+    #   device: "/dev/video1"
+    #   width: 1920
+    #   height: 1080
+    #   fps: 25
+    #   record_processed:
+    #     enable: false
+    #     path: "logs/modules/vision/camera1/record/raw_data"
+    #     max_size: 100 #MB
+    #     save_mode: "video" #录制保存方式：1.video 编码视频  2.images 图片集
+    #   traditional_vision:
+    #     enable: false
+    #     record_processed:
+    #       enable: false
+    #       path: "logs/modules/vision/camera1/record/tradition_cv"
+    #       max_size: 100 #MB
+    #       save_mode: "video"
+    #     other_params: {}
+
+    #   yolo:
+    #     enable: true
+    #     record_detection:
+    #       enable: true
+    #       path: "logs/modules/vision/camera1/record/yolo"
+    #       max_size: 100 #MB
+    #       save_mode: "images"
+    #     model_path: "/models/yolov8s.pt"
+    #     detection_threshold: 0.7
+    #     other_params: {}
 
   # 全局参数
   advanced:

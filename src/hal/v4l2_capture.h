@@ -3,7 +3,7 @@
 
 #include "utils.h"
 #include <linux/videodev2.h>
-
+#include "log/logmanager.h"
 class V4L2Capture {
 public:
     // 设备信息

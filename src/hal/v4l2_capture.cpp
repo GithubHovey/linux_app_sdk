@@ -12,10 +12,10 @@
 V4L2Capture::V4L2Capture(const std::string& device, std::string logfile)
     : device_path_(device), fd_(-1), is_streaming_(false)
     {
-        logger = spdlog::basic_logger_mt(device, logfile);
-        logger->set_level(spdlog::level::debug);  // 允许info及以上级别
-        logger->info("---------------");
-        logger->info("v4l2 devices register...");
+        // logger = spdlog::basic_logger_mt(device, logfile);
+        // logger->set_level(spdlog::level::debug);  // 允许info及以上级别
+        // logger->info("---------------");
+        // logger->info("v4l2 devices register...");
     }
 
 V4L2Capture::~V4L2Capture() {

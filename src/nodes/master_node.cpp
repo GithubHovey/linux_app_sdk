@@ -4,6 +4,8 @@
 // #include "AIchat.h"
 #include "vision.h"
 #include <csignal>
+#include "log/logmanager.h"
+#include <unistd.h>
 volatile int QUIT_FLAG = 0;
 //static char* TSDEV="/dev/input/event0";
 void signal_handler(int sig) {
@@ -12,22 +14,52 @@ void signal_handler(int sig) {
 }
 int main(int argc, char** argv)
 {
+    int opt;
+    std::string configPath;
+    std::string logConfigPath;
+    while ((opt = getopt(argc, argv, "c:l:")) != -1) {
+        switch (opt) {
+            case 'c':
+                configPath = opt;
+                break;
+            case 'l':
+                logConfigPath = opt;
+                break;
+            default:
+                std::cerr << "Usage: " << argv[0] << " -c <config.yaml> [-l <logconf.yaml>]\n";
+                std::cerr << "Example: " << argv[0] << " -c /opt/robot_config.yaml -l /opt/logconf.yaml\n";
+                return EXIT_FAILURE;
+        }
+    }
+        // 检查必须的参数
+    if (configPath.empty()) {
+        std::cerr << "Error: Config file path is required!\n";
+        std::cerr << "Usage: " << argv[0] << " -c <config.yaml> [-l <logconf.yaml>]\n";
+        return EXIT_FAILURE;
+    }
+    
     /*1. 配置文件解析*/
-    if (argc != 2) {
-        std::cerr << "Error: YAML config file path is required!\n";
-        std::cerr << "Usage: " << argv[0] << " <path/to/config.yaml>\n";
-        std::cerr << "Example: " << argv[0] << " /opt/robot_config.yaml\n";
+    if (!Config::getInstance().load(configPath)) {
+        std::cerr << "Failed to load config file: " << configPath << "\n";
         return EXIT_FAILURE;
     }
-    if (!Config::getInstance().load(argv[1])) {
-        std::cerr << "Failed to load config file: " << argv[1] << "\n";
-        return EXIT_FAILURE;
-    }
-    /*2.日志系统初始化*/ 
-    spdlog::set_pattern("[%H:%M:%S] [%n] [%l] %v");  // 设置日志格式
-    spdlog::flush_every(std::chrono::seconds(3)); //每3s写入一次日志
-    // std::shared_ptr<spdlog::logger> main_logger = spdlog::basic_logger_mt("main_logger", "logs/main.log");
 
+    /*2.日志系统初始化*/ 
+    try {
+        // 初始化日志系统
+        LogManager::Initialize(logConfigPath);
+        
+        // 设置全局异常处理器
+        spdlog::set_error_handler([](const std::string& msg) {
+            std::cerr << "Log error: " << msg << std::endl;
+        });
+        
+        // 程序结束时
+
+    } catch (const std::exception& e) {
+        std::cerr << "Fatal error: " << e.what() << std::endl;
+        return 1;
+    }
     /*3.模块初始化*/ 
     ModuleManager module_manager;
     // module_manager.addModule(std::make_shared<AIchat>
@@ -39,7 +71,7 @@ int main(int argc, char** argv)
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     module_manager.stopAll();
-
+    LogManager::Shutdown();
     return 0;
 }
 

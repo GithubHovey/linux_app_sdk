@@ -1,45 +1,65 @@
 #include "camera.h"
+#include "log/logmanager.h"
 #ifdef USE_RKMEDIA
 #include "rkcapture.h"
 #else
 #include "v4l2_capture.h"
 #endif
-#include <memory>
-#include <queue>
+
 #include <sys/time.h>
 #define BUFFER_NUMB 10
 #define QUEUE_POP_THRESHOLD 2
 class Camera::Impl {
 public:
-    explicit Impl(const std::string& device, std::string logfile, uint32_t width, uint32_t height, uint32_t fps, uint8_t buffer_numb = BUFFER_NUMB, const std::string &pixel_format = "rgb888"): 
-#ifdef USE_RKMEDIA
-        capture(device,logfile),
-#else
-        capture(device,logfile),
-#endif  
-         width(width), height(height), fps(fps), buffer_numb(buffer_numb), pixel_format(pixel_format)
-        {
-            logger = spdlog::basic_logger_mt("camera", logfile);
-            logger->set_level(spdlog::level::debug);  // 允许info及以上级别
-            logger->info("---------------");
-            logger->info("camera driver init...");
+    explicit Impl(const YAML::Node& config)
+    {
+        capture_list.clear();
+        for (const auto& channel_entry : config["channel_list"]) {
+            const auto& capture_config = channel_entry.second;
+            
+            if (capture_config["enable"].as<bool>()) {
+                auto channel = std::make_unique<CaptureChannel>();
+                channel->name = capture_config["name"].as<std::string>();
+                channel->width = capture_config["width"].as<uint16_t>();
+                channel->height = capture_config["height"].as<uint16_t>();
+                channel->fps = capture_config["fps"].as<uint16_t>();
+                channel->rotation = capture_config["rotation"].as<uint16_t>();
+                channel->fmt = capture_config["fmt"].as<std::string>();
+                if (capture_config["fix_width"] && capture_config["fix_height"]) {
+                    channel->fix_width = capture_config["fix_width"].as<uint16_t>();
+                    channel->fix_height = capture_config["fix_height"].as<uint16_t>();
+                } else {
+                    channel->fix_width = channel->width;
+                    channel->fix_height = channel->height;
+                }
+                channel->capture = std::make_unique<RKCapture>(channel->name,capture_config["buf_cnt"].as<uint8_t>());       
+                capture_list.push_back(std::move(channel));
+
+            } else {
+                capture_list.push_back(nullptr);
+            }
         }
-#ifdef USE_RKMEDIA
-    RKCapture capture; 
-#else
-    V4L2Capture capture;
-#endif
-    
-    uint32_t width;
-    uint32_t height;
-    uint32_t fps;  // Default frame rate
-    std::string pixel_format;
-    uint8_t buffer_numb;
-    std::queue<Frame> frame_queue;
-    std::queue<Frame> frame_return_queue;
-    std::mutex queue_mutex;
+        logger = LogManager::GetLogger(config["name"].as<std::string>());
+        logger->info("---------------");
+        logger->info("camera driver init...");
+    }
+    struct CaptureChannel
+    {
+        std::string name;
+        uint16_t width;
+        uint16_t height;
+        uint16_t fps;  // Default frame rate
+        uint16_t rotation;
+        std::string fmt;
+        uint16_t fix_width;
+        uint16_t fix_height;
+        std::queue<Frame> frame_queue;
+        std::queue<Frame> frame_return_queue;
+        std::mutex queue_mutex;
+        std::unique_ptr<RKCapture> capture;
+    };
+    std::vector<std::unique_ptr<CaptureChannel>> capture_list;
     std::shared_ptr<spdlog::logger> logger;
-    // std::mutex return_queue_mutex;
     struct {
         uint32_t current_fps;                  // 目标帧率
         std::chrono::steady_clock::time_point start_time;  // 帧开始时间
@@ -47,7 +67,12 @@ public:
     } fps_manager;
 };
 
-Camera::Camera(const std::string& device,std::string logfile,  uint32_t width, uint32_t height, uint32_t fps,uint8_t buffer_numb) : impl_(std::make_unique<Impl>(device,logfile, width,height,fps)) {}
+// Camera::Camera(const std::string& device,std::string logfile,  uint32_t width, uint32_t height, uint32_t fps,uint8_t buffer_numb) : impl_(std::make_unique<Impl>(device,logfile, width,height,fps)) {}
+Camera::Camera(YAML::Node& config):
+    impl_(std::make_unique<Impl>(config))
+    {
+        
+    }
 Camera::~Camera() = default;
 
 int Camera::init() 

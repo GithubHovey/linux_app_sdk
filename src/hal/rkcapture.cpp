@@ -1,7 +1,7 @@
 #include "rkcapture.h"
 #include "sample_common.h"
-RKCapture::RKCapture(std::string deviceName, std::string logfile, RK_S32 deviceId, RK_S32 channelId, std::string iq_files_path, uint8_t buf_cnt)
-    : deviceName(deviceName), deviceId(deviceId), channelId(channelId), iq_file_dir(iq_files_path), initialized(false) {
+RKCapture::RKCapture(std::string name, uint8_t buf_cnt)
+    : name(name), deviceId(0), channelId(0), iq_file_dir("/oem/etc/iqfiles"), initialized(false) {
     mb_list.resize(buf_cnt);
     
 }
@@ -10,7 +10,7 @@ RKCapture::~RKCapture() {
     // Destructor implementation
 }
 
-int RKCapture::init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t outputWidth, uint32_t outputHeight) {
+int RKCapture::init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t rotation, uint32_t outputWidth, uint32_t outputHeight) {
 
 
     #ifdef RKAIQ
@@ -22,7 +22,7 @@ int RKCapture::init(uint32_t width, uint32_t height, uint32_t fps, std::string o
     #endif
     RK_MPI_SYS_Init();
     VI_CHN_ATTR_S vi_chn_attr;
-    vi_chn_attr.pcVideoNode = deviceName.c_str();
+    vi_chn_attr.pcVideoNode = name.c_str();
     vi_chn_attr.u32BufCnt = mb_list.size();
     vi_chn_attr.u32Width = width;
     vi_chn_attr.u32Height = height;

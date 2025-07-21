@@ -1,7 +1,11 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "utils.h"
+#include <string>
+#include <mutex>
+#include <atomic>
+#include <vector>
+#include "yamlconfig.h"
 class Camera {
 public:
     struct Frame {
@@ -30,7 +34,8 @@ public:
         Frame& operator=(Frame&&) = default;     // 允许移动赋值
         };
 
-    explicit Camera(const std::string& device, std::string logfile, uint32_t width, uint32_t height, uint32_t fps, uint8_t buffer_numb = 10);
+    // explicit Camera(const std::string& device, std::string logfile, uint32_t width, uint32_t height, uint32_t fps, uint8_t buffer_numb = 10);
+    explicit Camera(YAML::Node& config);
     ~Camera();
 
     int init();

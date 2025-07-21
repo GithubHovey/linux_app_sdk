@@ -10,10 +10,10 @@
 #endif
 class RKCapture {
 public:
-    RKCapture(std::string deviceName, std::string logfile, RK_S32 deviceId = 0, RK_S32 channelId = 0, std::string iq_files_path = DEFAULT_IQFILE_PATH, uint8_t buf_cnt = 10);
+    RKCapture(std::string name, uint8_t buf_cnt = 10);
     ~RKCapture();
 
-    int init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t outputWidth, uint32_t outputHeight);
+    int init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t rotation, uint32_t outputWidth, uint32_t outputHeight);
     int StartStream(void);
     int captureFrame(void*& image_data, size_t & size, uint8_t & index, timeval & timestamp, int timeout = 0);
     
@@ -22,14 +22,9 @@ public:
     int StopStream();
     int close();
 private:
-    // struct rkcapture_buffer
-    // {
-    //     uint8_t index;
-    //     MEDIA_BUFFER mb;
 
-    // };
     std::vector<MEDIA_BUFFER> mb_list;
-    std::string deviceName;
+    std::string name;
     RK_S32 deviceId;
     RK_S32 channelId;
     bool initialized;
