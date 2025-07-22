@@ -1,14 +1,49 @@
 #include "log/logmanager.h"
-#include <filesystem>
 #include <algorithm>
-
-namespace fs = std::filesystem;
+#include <sys/stat.h> // 用于mkdir
+#include <unistd.h>   // 用于access
+#include <string.h>   // 用于strerror
+#include <dirent.h>   // 用于目录操作
 
 // 静态成员初始化
 std::unordered_map<std::string, LogManager::LoggerConfig> LogManager::configs_;
 std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> LogManager::loggers_;
 std::mutex LogManager::mutex_;
 std::string LogManager::config_path_;
+
+// 辅助函数：创建目录
+static bool create_directories(const std::string& path) {
+    size_t pos = 0;
+    std::string dir;
+    int mdret;
+    
+    if(path[path.size()-1] != '/') {
+        dir = path + "/";
+    } else {
+        dir = path;
+    }
+    
+    while((pos = dir.find_first_of('/', pos)) != std::string::npos) {
+        std::string subdir = dir.substr(0, pos++);
+        if(subdir.empty()) continue; // 忽略开头的/
+        
+        if(access(subdir.c_str(), F_OK) != 0) {
+            mdret = mkdir(subdir.c_str(), 0755);
+            if(mdret != 0) {
+                spdlog::error("Failed to create directory {}: {}", subdir, strerror(errno));
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// 辅助函数：获取父目录
+static std::string parent_path(const std::string& path) {
+    size_t pos = path.find_last_of('/');
+    if(pos == std::string::npos) return "";
+    return path.substr(0, pos);
+}
 
 void LogManager::Initialize(const std::string& config_path) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -20,18 +55,27 @@ void LogManager::LoadConfig(const std::string& config_path) {
     try {
         YAML::Node config = YAML::LoadFile(config_path);
         std::string base_dir = config["base_dir"].as<std::string>("/root/app/logs");
-        spdlog::set_pattern("[%H:%M:%S] [%n] [%l] %v");  // 设置日志格式
-        spdlog::flush_every(std::chrono::seconds(3)); //每3s写入一次日志        
+        spdlog::set_pattern("[%H:%M:%S] [%n] [%l] %v");
+        spdlog::flush_every(std::chrono::seconds(3));
+        
         for (const auto& node : config["loggers"]) {
             std::string name = node.first.as<std::string>();
             LoggerConfig cfg;
             
             // 构建完整路径
             std::string rel_path = node.second["file"].as<std::string>();
-            cfg.path = (fs::path(base_dir) / rel_path).string();
+            if(!base_dir.empty() && base_dir.back() != '/') {
+                base_dir += '/';
+            }
+            cfg.path = base_dir + rel_path;
             
             // 创建目录
-            fs::create_directories(fs::path(cfg.path).parent_path());
+            std::string dir_path = parent_path(cfg.path);
+            if (!dir_path.empty() && access(dir_path.c_str(), F_OK) != 0) {
+                if(!create_directories(dir_path)) {
+                    throw std::runtime_error("Failed to create log directory: " + dir_path);
+                }
+            }
             
             // 解析大小 (支持KB/MB/GB)
             if (node.second["max_size"]) {
@@ -74,13 +118,14 @@ void LogManager::LoadConfig(const std::string& config_path) {
             
             configs_[name] = cfg;
         }
-
+        
     } catch (const std::exception& e) {
         spdlog::error("Failed to load log config: {}", e.what());
         throw;
     }
 }
 
+// 其余函数保持不变...
 std::shared_ptr<spdlog::logger> LogManager::CreateLogger(
     const std::string& name, 
     const LoggerConfig& config) 
