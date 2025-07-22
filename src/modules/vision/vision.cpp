@@ -25,8 +25,8 @@ bool Vision::init()
         if(camera) {                // 检查指针有效性
             int ret = camera->init();
             if(ret != 0) return false;
-            std::thread t(&Camera::CaptureThread, camera.get());
-            t.detach();
+            // std::thread t(&Camera::CameraThread, camera.get());
+            // t.detach();
         }
     }
     return true;

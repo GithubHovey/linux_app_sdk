@@ -35,15 +35,14 @@ public:
         };
 
     // explicit Camera(const std::string& device, std::string logfile, uint32_t width, uint32_t height, uint32_t fps, uint8_t buffer_numb = 10);
-    explicit Camera(YAML::Node& config);
+    explicit Camera(const YAML::Node& config);
     ~Camera();
 
     int init();
         // Frame capture
     bool getFrame(Frame& frame, uint32_t timeout_ms = 5000);
     bool returnFrame(const Frame& frame);
-    void CaptureThread();
-    Frame& GetLatestFrame();
+    Frame& GetLatestFrame(uint8_t port);
 private:
     // Camera controls
     bool setBrightness(int32_t value);

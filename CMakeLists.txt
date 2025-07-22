@@ -46,7 +46,8 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
             ${CMAKE_SOURCE_DIR}/src/modules/*.cpp
             ${CMAKE_SOURCE_DIR}/src/drivers/*.cpp
             ${CMAKE_SOURCE_DIR}/src/utils/*.cpp
-            ${CMAKE_SOURCE_DIR}/src/utils/*.c
+            ${CMAKE_SOURCE_DIR}/src/utils/*.
+            ${CMAKE_SOURCE_DIR}/src/utils/log/*.cpp
     )
     #架构基本目录
     include_directories( 
