@@ -3,6 +3,8 @@
 #include <spdlog/sinks/basic_file_sink.h> 
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/daily_file_sink.h>
+
+#include "spdlog/sinks/stdout_color_sinks.h"
 #include <yaml-cpp/yaml.h>
 #include <memory>
 #include <unordered_map>
@@ -36,6 +38,7 @@ private:
         int max_days = 0;
         spdlog::level::level_enum level = spdlog::level::info;
         RotationMode rotation = RotationMode::SIZE;
+        bool console = false;
     };
 
     static void LoadConfig(const std::string& config_path);

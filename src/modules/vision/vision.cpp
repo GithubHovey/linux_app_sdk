@@ -46,11 +46,6 @@ void Vision::moduleThreadFunc()
     }
 }
 
-void Vision::capture_thread()
-{
-
-}
-
 void Vision::tradition_cv_thread()
 {
 

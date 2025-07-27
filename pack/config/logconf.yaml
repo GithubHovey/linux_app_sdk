@@ -1,22 +1,24 @@
-base_dir: "/root/app/logs"  # 基础日志目录
+base_dir: "/oem/app/logs"  # 基础日志目录
 global_conf:
   write_time: 3
 loggers:
   vision:
-    file: "network.log"     # 相对于base_dir的路径
+    file: "module/vision.log"     # 相对于base_dir的路径
     max_size: "100MB"       # 支持KB/MB/GB单位
     max_days: 7             # 保留天数
-    level: "info"           # trace/debug/info/warn/error/critical
+    level: "debug"           # trace/debug/info/warn/error/critical
     rotation: "size"        # size/daily/session/none
 
-  database:
-    file: "db/main.log"
-    max_size: "1GB"
-    max_days: 30
-    level: "warn"
-    rotation: "daily"
-
-  ui:
-    file: "ui/console.log"
+  imx307:
+    file: "module/vision.log"   
+    max_size: "100MB"
+    max_days: 7
     level: "debug"
-    rotation: "session"     # 每次启动新文件
+    rotation: "size"
+
+  rkispp_scale0:
+    file: "module/vision.log"   
+    max_size: "100MB"
+    max_days: 7
+    level: "debug"
+    rotation: "size"

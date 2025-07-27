@@ -1,4 +1,5 @@
 #include "log/logmanager.h"
+#include <iostream>
 #include <algorithm>
 #include <sys/stat.h> // 用于mkdir
 #include <unistd.h>   // 用于access
@@ -89,6 +90,10 @@ void LogManager::LoadConfig(const std::string& config_path) {
                     multiplier = 1024 * 1024 * 1024;
                 }
                 cfg.max_size = std::stoul(size_str) * multiplier;
+                if (cfg.max_size == 0) {
+                    spdlog::error("Invalid max_size (0) for logger: {}", name);
+                    cfg.max_size = 10 * 1024 * 1024; // 默认10MB
+                }
             }
             
             // 解析其他参数
@@ -116,6 +121,9 @@ void LogManager::LoadConfig(const std::string& config_path) {
                 else if (mode == "none") cfg.rotation = RotationMode::NONE;
             }
             
+            if (node.second["console"]) {
+                cfg.console = node.second["console"].as<bool>();
+            }
             configs_[name] = cfg;
         }
         
@@ -132,11 +140,21 @@ std::shared_ptr<spdlog::logger> LogManager::CreateLogger(
 {
     try {
         std::shared_ptr<spdlog::logger> logger;
-        
+        std::vector<spdlog::sink_ptr> sinks;
+
         switch (config.rotation) {
             case RotationMode::SIZE:
-                logger = spdlog::rotating_logger_mt(
-                    name, config.path, config.max_size, 3);
+                if (config.max_size == 0) {
+                    spdlog::error("Invalid max_size (0) for rotating logger: {}", name);
+                    logger = spdlog::basic_logger_mt(name, config.path); // 降级为普通logger
+                } else {
+                    logger = spdlog::rotating_logger_mt(
+                        name, config.path, config.max_size, 3);
+                }
+                if (config.max_size > 0) {
+                    sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
+                        config.path, config.max_size, 3));
+                }
                 break;
                 
             case RotationMode::DAILY:
@@ -159,6 +177,14 @@ std::shared_ptr<spdlog::logger> LogManager::CreateLogger(
                 break;
         }
         
+        if (config.console) {
+            sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+        }
+
+        if (sinks.empty()) {
+            throw spdlog::spdlog_ex("No valid sinks configured");
+        }
+        logger = std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
         logger->set_level(config.level);
         logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%n][%l] %v");
         return logger;
@@ -177,9 +203,10 @@ std::shared_ptr<spdlog::logger> LogManager::GetLogger(const std::string& name) {
         return loggers_[name];
     }
     
-    // 检查配置是否存在
+    // 检查配置是否存在，如果不存在则直接退出程序
     if (configs_.find(name) == configs_.end()) {
-        throw std::invalid_argument("Logger config not found: " + name);
+        std::cerr << "FATAL: Logger config not found: " << name << std::endl;
+        std::exit(EXIT_FAILURE);  // 或 std::abort();
     }
     
     // 创建新logger

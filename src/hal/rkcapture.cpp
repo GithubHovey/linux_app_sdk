@@ -14,6 +14,7 @@ int RKCapture::init(uint32_t width, uint32_t height, uint32_t fps, std::string o
 
 
     #ifdef RKAIQ
+        printf("#Rkaiq XML DirPath: %s\n", iq_file_dir.c_str());
         rk_aiq_working_mode_t hdr_mode = RK_AIQ_WORKING_MODE_NORMAL;
         RK_BOOL bMultictx = RK_FALSE;
         SAMPLE_COMM_ISP_Init(deviceId, hdr_mode, bMultictx, iq_file_dir.c_str());
@@ -23,13 +24,18 @@ int RKCapture::init(uint32_t width, uint32_t height, uint32_t fps, std::string o
     RK_MPI_SYS_Init();
     VI_CHN_ATTR_S vi_chn_attr;
     vi_chn_attr.pcVideoNode = name.c_str();
+    printf("devname = %s\n", name.c_str());
     vi_chn_attr.u32BufCnt = mb_list.size();
     vi_chn_attr.u32Width = width;
     vi_chn_attr.u32Height = height;
     vi_chn_attr.enPixFmt = IMAGE_TYPE_NV12;
     vi_chn_attr.enWorkMode = VI_WORK_MODE_NORMAL;
     int ret = RK_MPI_VI_SetChnAttr(deviceId, channelId, &vi_chn_attr);
-    
+    ret |= RK_MPI_VI_EnableChn(deviceId, 0);
+    if (ret) {
+        printf("ERROR: Create vi[0] failed! ret=%d\n", ret);
+        return -1;
+    }
     RGA_ATTR_S stRgaAttr;
     stRgaAttr.bEnBufPool = RK_TRUE;
     stRgaAttr.u16BufPoolCnt = mb_list.size();
@@ -59,17 +65,6 @@ int RKCapture::init(uint32_t width, uint32_t height, uint32_t fps, std::string o
         printf("ERROR: Create rga[0] falied! ret=%d\n", ret);
         return -1;
     }
-
-    return 0;
-}
-int RKCapture::StartStream(void)
-{
-    int ret = 0;
-    ret |= RK_MPI_VI_EnableChn(deviceId, 0);
-    if (ret) {
-        printf("ERROR: Create vi[0] failed! ret=%d\n", ret);
-        return -1;
-    }
     MPP_CHN_S stSrcChn;
     stSrcChn.enModId = RK_ID_VI;
     stSrcChn.s32DevId = deviceId;
@@ -78,11 +73,34 @@ int RKCapture::StartStream(void)
     stDestChn.enModId = RK_ID_RGA;
     stDestChn.s32DevId = deviceId;
     stDestChn.s32ChnId = channelId;
+    printf("RK_MPI_SYS_Bind\n");
     ret = RK_MPI_SYS_Bind(&stSrcChn, &stDestChn);
     if (ret) {
         printf("ERROR: Bind vi[0] and rga[0] failed! ret=%d\n", ret);
         return -1;
     }
+
+    return 0;
+}
+int RKCapture::StartStream(void)
+{
+    int ret = 0;
+
+    // MPP_CHN_S stSrcChn;
+    // stSrcChn.enModId = RK_ID_VI;
+    // stSrcChn.s32DevId = deviceId;
+    // stSrcChn.s32ChnId = channelId;
+    // MPP_CHN_S stDestChn;
+    // stDestChn.enModId = RK_ID_RGA;
+    // stDestChn.s32DevId = deviceId;
+    // stDestChn.s32ChnId = channelId;
+    // printf("RK_MPI_SYS_Bind\n");
+    // ret = RK_MPI_SYS_Bind(&stSrcChn, &stDestChn);
+    // if (ret) {
+    //     printf("ERROR: Bind vi[0] and rga[0] failed! ret=%d\n", ret);
+    //     return -1;
+    // }
+    // printf("RK_MPI_SYS_Bind  end\n");
     return 0;
 }
 int RKCapture::captureFrame(void*& image_data, size_t & size, uint8_t & index, timeval & timestamp, int timeout) {
@@ -90,6 +108,8 @@ int RKCapture::captureFrame(void*& image_data, size_t & size, uint8_t & index, t
     if (!mb_list[current_mb_index]) {
       printf("RK_MPI_SYS_GetMediaBuffer get null buffer!\n");
       return -1;
+    }else{
+        printf("RK_MPI_SYS_GetMediaBuffer get success!\n");
     }
     image_data = RK_MPI_MB_GetPtr(mb_list[current_mb_index]);
     size = RK_MPI_MB_GetSize(mb_list[current_mb_index]);

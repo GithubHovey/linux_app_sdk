@@ -20,10 +20,10 @@ int main(int argc, char** argv)
     while ((opt = getopt(argc, argv, "c:l:")) != -1) {
         switch (opt) {
             case 'c':
-                configPath = opt;
+                configPath = optarg;
                 break;
             case 'l':
-                logConfigPath = opt;
+                logConfigPath = optarg;
                 break;
             default:
                 std::cerr << "Usage: " << argv[0] << " -c <config.yaml> [-l <logconf.yaml>]\n";

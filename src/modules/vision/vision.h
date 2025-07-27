@@ -23,7 +23,6 @@ public:
     bool init() override ;
 private:
     std::vector<std::unique_ptr<Camera>> camera_list;
-    void capture_thread();
     void tradition_cv_thread();
     void yolo_detection_thread();
     void record_thread();

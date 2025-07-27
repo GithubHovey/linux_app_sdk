@@ -158,8 +158,8 @@ int main(int argc, char *argv[]) {
       if (tmp_optarg) {
         iq_file_dir = (char *)tmp_optarg;
       } else {
-        // iq_file_dir = "/oem/etc/iqfiles";
-        iq_file_dir = "/etc/iqfiles";
+        iq_file_dir = "/oem/etc/iqfiles";
+        // iq_file_dir = "/etc/iqfiles";
       }
       break;
     case 'c':
@@ -397,10 +397,10 @@ int main(int argc, char *argv[]) {
   }
 
   printf("%s exit!\n", __func__);
-  pthread_join(read_thread, NULL);
-  RK_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
-  RK_MPI_RGA_DestroyChn(0);
-  RK_MPI_VI_DisableChn(s32CamId, 1);
+  // pthread_join(read_thread, NULL);
+  // RK_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
+  // RK_MPI_RGA_DestroyChn(0);
+  // RK_MPI_VI_DisableChn(s32CamId, 1);
 
   if (iq_file_dir) {
 #ifdef RKAIQ

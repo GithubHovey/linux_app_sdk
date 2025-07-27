@@ -63,31 +63,31 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
             ${SRC}
             ${AICHAT_SRC}
     )
-    #rkmedia test
-    # include_directories( 
-    #     ${CMAKE_SYSROOT}/usr/include/easymedia
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/uAPI
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/xcore
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/common
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/algos
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/iq_parser
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/ipc_server
-    #     ${CMAKE_SOURCE_DIR}/src/nodes/test/
-    # )
+    # rkmedia test
+    include_directories( 
+        ${CMAKE_SYSROOT}/usr/include/easymedia
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/uAPI
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/xcore
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/common
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/algos
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/iq_parser
+        ${CMAKE_SYSROOT}/usr/include/rkaiq/ipc_server
+        ${CMAKE_SOURCE_DIR}/src/nodes/test/
+    )
 
-    # file(GLOB RKMEDIA_TEST_SRC
-    #     ${CMAKE_SOURCE_DIR}/src/nodes/test/rkmedia_vi_rga_test.c
-    #     ${CMAKE_SOURCE_DIR}/src/nodes/test/sample_common_isp.c
-    # )
-    # add_executable(rkmedia_test ${RKMEDIA_TEST_SRC})
-    # target_link_libraries(rkmedia_test PRIVATE
-    #     easymedia
-    #     rkaiq
-    #     pthread
-    # )
-    # target_compile_definitions(rkmedia_test PRIVATE
-    # RKAIQ
-    # )
+    file(GLOB RKMEDIA_TEST_SRC
+        ${CMAKE_SOURCE_DIR}/src/nodes/test/rkmedia_vi_rga_test.c
+        ${CMAKE_SOURCE_DIR}/third_party/rockchip/rkaiq/sample_common_isp.c
+    )
+    add_executable(rkmedia_test ${RKMEDIA_TEST_SRC})
+    target_link_libraries(rkmedia_test PRIVATE
+        easymedia
+        rkaiq
+        pthread
+    )
+    target_compile_definitions(rkmedia_test PRIVATE
+    RKAIQ
+    )
 
     target_link_libraries(${PROJECT_NAME} PRIVATE
         pthread
