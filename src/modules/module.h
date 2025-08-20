@@ -19,6 +19,7 @@ public:
         // logger->set_level(spdlog::level::debug);  // 允许info及以上级别
         logger->info("---------------");
         logger->info("module initing...");
+        // logger->flush();  // 手动刷新缓冲区
     }
     virtual ~Module(){}
 

@@ -1,0 +1,24 @@
+base_dir: "/userdata/app/logs"  # 基础日志目录
+global_conf:
+  write_time: 3
+loggers:
+  vision:
+    file: "module/vision1.log"     # 相对于base_dir的路径
+    max_size: "100MB"       # 支持KB/MB/GB单位
+    max_days: 7             # 保留天数
+    level: "debug"           # trace/debug/info/warn/error/critical
+    rotation: "size"        # size/daily/session/none
+
+  imx307:
+    file: "module/vision2.log"   
+    max_size: "100MB"
+    max_days: 7
+    level: "debug"
+    rotation: "size"
+
+  rkispp_scale0:
+    file: "module/vision3.log"   
+    max_size: "100MB"
+    max_days: 7
+    level: "debug"
+    rotation: "size"

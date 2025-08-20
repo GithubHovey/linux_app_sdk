@@ -85,7 +85,7 @@ bool UARTDriver::open(const std::string& port, int baudrate, bool non_blocking) 
     }
 
     // 设置原始输入模式
-    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+    options.c_iflag = 0;  // 禁用所有输入标志位
     options.c_oflag &= ~OPOST;
 
     // 设置超时和最小读取字符数

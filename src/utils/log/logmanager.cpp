@@ -49,15 +49,16 @@ static std::string parent_path(const std::string& path) {
 void LogManager::Initialize(const std::string& config_path) {
     std::lock_guard<std::mutex> lock(mutex_);
     config_path_ = config_path;
+    std::cout << "log_path:" << config_path << std::endl;
     LoadConfig(config_path);
 }
 
 void LogManager::LoadConfig(const std::string& config_path) {
     try {
         YAML::Node config = YAML::LoadFile(config_path);
-        std::string base_dir = config["base_dir"].as<std::string>("/root/app/logs");
-        spdlog::set_pattern("[%H:%M:%S] [%n] [%l] %v");
-        spdlog::flush_every(std::chrono::seconds(3));
+        std::string base_dir = config["base_dir"].as<std::string>("/userdata/app/logs");
+        // spdlog::set_pattern("[%n] [%l] %v");
+        // spdlog::flush_every(std::chrono::seconds(1));
         
         for (const auto& node : config["loggers"]) {
             std::string name = node.first.as<std::string>();
@@ -186,7 +187,8 @@ std::shared_ptr<spdlog::logger> LogManager::CreateLogger(
         }
         logger = std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
         logger->set_level(config.level);
-        logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][%n][%l] %v");
+        logger->set_pattern("[%H:%M:%S.%e][%n][%l] %v");
+        logger->flush_on(spdlog::level::info);  
         return logger;
         
     } catch (const spdlog::spdlog_ex& ex) {
