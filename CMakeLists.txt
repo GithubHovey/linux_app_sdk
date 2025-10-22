@@ -32,9 +32,9 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
     find_package(PkgConfig REQUIRED)
     #cjson
     # pkg_check_modules(CJSON REQUIRED libcjson)
-    include_directories(
-        ${CMAKE_SYSROOT}/usr/include/cjson
-    )
+    # include_directories(
+    #     ${CMAKE_SYSROOT}/usr/include/cjson
+    # )
 
     #日志系统
     find_package(spdlog REQUIRED)
@@ -64,16 +64,16 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
             ${AICHAT_SRC}
     )
     # rkmedia test
-    include_directories( 
-        ${CMAKE_SYSROOT}/usr/include/easymedia
-        ${CMAKE_SYSROOT}/usr/include/rkaiq/uAPI
-        ${CMAKE_SYSROOT}/usr/include/rkaiq/xcore
-        ${CMAKE_SYSROOT}/usr/include/rkaiq/common
-        ${CMAKE_SYSROOT}/usr/include/rkaiq/algos
-        ${CMAKE_SYSROOT}/usr/include/rkaiq/iq_parser
-        ${CMAKE_SYSROOT}/usr/include/rkaiq/ipc_server
-        ${CMAKE_SOURCE_DIR}/src/nodes/test/
-    )
+    # include_directories( 
+    #     ${CMAKE_SYSROOT}/usr/include/easymedia
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/uAPI
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/xcore
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/common
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/algos
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/iq_parser
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/ipc_server
+    #     ${CMAKE_SOURCE_DIR}/src/nodes/test/
+    # )
 
     # file(GLOB RKMEDIA_TEST_SRC
     #     ${CMAKE_SOURCE_DIR}/src/nodes/test/rkmedia_vi_rga_test.c
@@ -92,7 +92,7 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")
     target_link_libraries(${PROJECT_NAME} PRIVATE
         pthread
         PRIVATE spdlog::spdlog
-        cjson
+        # cjson
         yaml-cpp
     )
 #GUI
@@ -202,14 +202,15 @@ else()
 endif()
 
 # debug
-add_compile_options(-fPIC -Wall -O3 -g0)
-# warnning
-add_compile_options(
-    -Wall -Wshadow -Wundef -Wmissing-prototypes -Wno-discarded-qualifiers -Wall -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wpointer-arith 
-    -fno-strict-aliasing -Wno-error=cpp -Wuninitialized -Wmaybe-uninitialized -Wno-unused-parameter -Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess 
-    -Wno-format-nonliteral -Wno-cast-qual -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wformat-security -Wno-ignored-qualifiers -Wno-error=pedantic 
-    -Wno-sign-compare -Wno-error=missing-prototypes -Wdouble-promotion -Wclobbered -Wdeprecated -Wempty-body -Wtype-limits -Wshift-negative-value -Wstack-usage=2048 
-    -Wno-unused-value -Wno-unused-parameter -Wno-missing-field-initializers -Wuninitialized -Wmaybe-uninitialized -Wall -Wextra -Wno-unused-parameter 
-    -Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess -Wno-format-nonliteral -Wpointer-arith -Wno-cast-qual -Wmissing-prototypes 
-    -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wno-discarded-qualifiers -Wformat-security -Wno-ignored-qualifiers -Wno-sign-compare -std=c99
-)
+# add_compile_options(-fPIC -Wall -O3 -g0)
+# # warnning
+# add_compile_options(
+#     -Wall -Wshadow -Wundef -Wmissing-prototypes -Wno-discarded-qualifiers -Wall -Wextra -Wno-unused-function -Wno-error=strict-prototypes -Wpointer-arith 
+#     -fno-strict-aliasing -Wno-error=cpp -Wuninitialized -Wmaybe-uninitialized -Wno-unused-parameter -Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess 
+#     -Wno-format-nonliteral -Wno-cast-qual -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wformat-security -Wno-ignored-qualifiers -Wno-error=pedantic 
+#     -Wno-sign-compare -Wno-error=missing-prototypes -Wdouble-promotion -Wclobbered -Wdeprecated -Wempty-body -Wtype-limits -Wshift-negative-value -Wstack-usage=2048 
+#     -Wno-unused-value -Wno-unused-parameter -Wno-missing-field-initializers -Wuninitialized -Wmaybe-uninitialized -Wall -Wextra -Wno-unused-parameter 
+#     -Wno-missing-field-initializers -Wtype-limits -Wsizeof-pointer-memaccess -Wno-format-nonliteral -Wpointer-arith -Wno-cast-qual -Wmissing-prototypes 
+#     -Wunreachable-code -Wno-switch-default -Wreturn-type -Wmultichar -Wno-discarded-qualifiers -Wformat-security -Wno-ignored-qualifiers -Wno-sign-compare -std=c++11
+# )
+add_compile_options(-fPIC -O3 -g0 -std=c++11)

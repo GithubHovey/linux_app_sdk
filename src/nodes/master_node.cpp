@@ -74,5 +74,3 @@ int main(int argc, char** argv)
     LogManager::Shutdown();
     return 0;
 }
-
-
