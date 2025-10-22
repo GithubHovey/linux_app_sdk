@@ -2,7 +2,7 @@
 #include "yamlconfig.h"
 #include "module_manager.h"
 // #include "AIchat.h"
-#include "vision.h"
+// #include "vision.h"
 #include <csignal>
 #include "log/logmanager.h"
 #include <unistd.h>
@@ -64,7 +64,7 @@ int main(int argc, char** argv)
     ModuleManager module_manager;
     // module_manager.addModule(std::make_shared<AIchat>
     //     ("aichat", 16000, 1, 40, "./config/snowboy/common.res", "./config/snowboy/snowboy.umdl"));
-    module_manager.addModule(std::make_shared<Vision>("vision"));
+    // module_manager.addModule(std::make_shared<Vision>("vision"));
     module_manager.startAll();
     while (!QUIT_FLAG) {
         // if (getExitSignal()) break;
