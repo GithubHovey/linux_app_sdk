@@ -86,6 +86,12 @@ bool MCUProtocol::unpack(CircularArray<uint8_t>& unpack_array, MCU_cmd& cmd) {
                 std::cout << "frame_len ="<< static_cast<int>(unpack_array.buffer[(pos + frame_len) % (unpack_array.buffer.size())]) << std::endl;
                 continue;  // 帧尾不匹配，继续查找下一个可能的起始位置
             }
+            //frame_len不能小于最小帧长度
+            if(frame_len < PROTOCOL_NINE_BYTES)
+            {
+                std::cout << "frame_len too small ="<< static_cast<int>(frame_len) << std::endl;
+                continue;  
+            }
             uint16_t calc_checksum = calculateChecksum(unpack_array.buffer, pos + 2, frame_len - 5);
             uint8_t checksum_low = unpack_array.buffer[(pos + frame_len - 2) % unpack_array.buffer.size()];
             uint8_t checksum_high = unpack_array.buffer[(pos + frame_len - 3) % unpack_array.buffer.size()];
