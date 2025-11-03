@@ -1,5 +1,8 @@
 .vscode/
+.marscode/
+.crossnote/
 build*/
 .continue
+.config*
 pack/app/
 pack/out/
