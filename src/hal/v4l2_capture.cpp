@@ -9,8 +9,8 @@
 #include <sstream>
 #include <iostream>
 
-V4L2Capture::V4L2Capture(const std::string& device, std::string logfile)
-    : device_path_(device), fd_(-1), is_streaming_(false)
+V4L2Capture::V4L2Capture(std::string name, uint8_t buf_cnt)
+    : device_path_(name), fd_(-1), is_streaming_(false), buffer_numb(buf_cnt)
     {
         // logger = spdlog::basic_logger_mt(device, logfile);
         // logger->set_level(spdlog::level::debug);  // 允许info及以上级别
@@ -22,7 +22,29 @@ V4L2Capture::~V4L2Capture() {
     if (is_streaming_) StopStream();
     if (fd_ != -1) close();
 }
-
+int V4L2Capture::init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t rotation, uint32_t outputWidth, uint32_t outputHeight)
+{
+    bool ret = Open(); 
+    if(!ret) return -1;
+    ret = CheckCap(); //确认设备支持视频采集
+    if(!ret) return -2;
+    ret = CheckSupportFormat(); //查看v4l2设备支持的格式
+    if(!ret) return -3;
+    uint32_t pixel_format;
+    if(outputFormat == "NV12")
+        pixel_format = V4L2_PIX_FMT_NV12;
+    else if(outputFormat == "RGB888")
+        pixel_format = V4L2_PIX_FMT_RGB24;
+    else
+        return -4;
+    ret = SetFormat(width, height, pixel_format);
+    if(!ret) return -4;
+    ret = SetFrameRate(fps);
+    if(!ret) return -5;
+    ret = InitBuffers(buffer_numb);
+    if(!ret) return -6;
+    return 0;
+}
 bool V4L2Capture::Open() {
     if (isOpened()) return true;
 
@@ -231,7 +253,9 @@ bool V4L2Capture::isStreaming() const {
     return is_streaming_;
 }
 
-bool V4L2Capture::captureFrame(Buffer& buffer, struct timeval & timestamp, uint32_t timeout_ms) {
+bool V4L2Capture::captureFrame(void*& image_data, size_t & size, uint8_t & index, timeval & timestamp, int timeout_ms) 
+// void*& image_data, size_t & size, uint8_t & index, timeval & timestamp, int timeout_ms
+{
     if (!is_streaming_) return false;
 
     fd_set fds;
@@ -259,8 +283,12 @@ bool V4L2Capture::captureFrame(Buffer& buffer, struct timeval & timestamp, uint3
         ioctl(fd_, VIDIOC_QBUF, &buf);
         return false;
     }
-    buffer = buffer_list[buf.index];
+    // buffer = buffer_list[buf.index];
     timestamp = buf.timestamp;
+    image_data = buffer_list[buf.index].start;
+    index = buf.index;
+    size = buf.bytesused;
+
     // frame.data = buffer_list[buf.index].start;
     // frame.size = buf.bytesused;
     // frame.index = buf.index;

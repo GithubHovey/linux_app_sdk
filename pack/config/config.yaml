@@ -7,7 +7,7 @@ vision:
   camera_list:
     camera1:
       enable: true
-      name: "imx307"
+      name: "imx415"
       channel_list:
         channel1:
           enable: true
@@ -15,11 +15,12 @@ vision:
           bufcnt: 10
           width: 1920
           height: 1080
-          fps: 60
-          fmt: "rgb888"
+          fps: 30
+          fmt: "NV12"
           rotation: 0
           fix_width: 640
           fix_height: 640
+          fix_fmt: "rgb888"
         channel2:
           enable: false
           name: "rkisp_scard2"

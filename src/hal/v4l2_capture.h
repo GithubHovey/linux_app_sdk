@@ -27,7 +27,7 @@ public:
         uint32_t index;
     };
 
-    explicit V4L2Capture(const std::string& device, std::string logfile);
+    explicit V4L2Capture(std::string name, uint8_t buf_cnt = 10);
     ~V4L2Capture();
 
     // 禁止拷贝
@@ -35,6 +35,7 @@ public:
     V4L2Capture& operator=(const V4L2Capture&) = delete;
 
     // 设备操作
+    int init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t rotation, uint32_t outputWidth, uint32_t outputHeight);
     bool Open();
     void close();
     bool isOpened() const;
@@ -57,7 +58,7 @@ public:
     bool isStreaming() const;
 
     // 帧捕获
-    bool captureFrame(Buffer& buffer, struct timeval & timestamp, uint32_t timeout_ms = 5000);
+    bool captureFrame(void*& image_data, size_t & size, uint8_t & index, timeval & timestamp, int timeout_ms = 5000);
     bool returnFrame(uint32_t index);
 
     // 控制接口
@@ -74,6 +75,7 @@ private:
     int fd_;
     bool is_streaming_;
     std::vector<Buffer> buffer_list;
+    uint8_t buffer_numb;
 };
 
 #endif // V4L2_CAPTURE_H
