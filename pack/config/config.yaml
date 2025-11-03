@@ -48,50 +48,6 @@ vision:
           # fix_width: 640
           # fix_height: 640
 
-
-      # yolo:
-      #   enable: true
-      #   record_detection:
-      #     enable: truezhe y
-      #     path: "logs/modules/vision/camera0/record/yolo"
-      #     max_size: 100 #MB
-      #     save_mode: "video"  # or "images"
-      #   model_path: "/models/yolov8n.pt"
-      #   detection_threshold: 0.65
-      #   other_params: {}  # 其他YOLO参数
-
-    # 相机2配置
-    # camera2:
-    #   enable: false
-    #   device: "/dev/video1"
-    #   width: 1920
-    #   height: 1080
-    #   fps: 25
-    #   record_processed:
-    #     enable: false
-    #     path: "logs/modules/vision/camera1/record/raw_data"
-    #     max_size: 100 #MB
-    #     save_mode: "video" #录制保存方式：1.video 编码视频  2.images 图片集
-    #   traditional_vision:
-    #     enable: false
-    #     record_processed:
-    #       enable: false
-    #       path: "logs/modules/vision/camera1/record/tradition_cv"
-    #       max_size: 100 #MB
-    #       save_mode: "video"
-    #     other_params: {}
-
-    #   yolo:
-    #     enable: true
-    #     record_detection:
-    #       enable: true
-    #       path: "logs/modules/vision/camera1/record/yolo"
-    #       max_size: 100 #MB
-    #       save_mode: "images"
-    #     model_path: "/models/yolov8s.pt"
-    #     detection_threshold: 0.7
-    #     other_params: {}
-
   # 全局参数
   advanced:
     max_video_duration: 3600
