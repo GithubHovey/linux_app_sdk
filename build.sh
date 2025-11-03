@@ -11,7 +11,7 @@ debug_flag=OFF
 
 # Functions
 usage() {
-  echo "Usage: $0 [-s | -p | -m | --clean | -app app_name [-d]]"
+  echo "Usage: $0 [-s | -p | -m | -clean | -app app_name [-d]]"
   echo "Options:"
   echo "  -s           Compile for simulator (Ubuntu system,独立模式)"
   echo "  -p           Package only (no compilation,独立模式)"
@@ -55,10 +55,27 @@ package() {
   mkdir -p "$app_dir" "$out_dir"  # Added out_dir creation
   
   # Copy binary
-  if [ -f "build/robot.exe" ]; then
-    cp "build/robot.exe" "$app_dir/"
+  # if [ -f "build/robot.exe" ]; then
+  #   cp "build/robot.exe" "$app_dir/"
+  # else
+  #   echo "Error: Binary not found at build/robot.exe"
+  #   exit 1
+  # fi
+  echo "查找build目录下的所有exe文件..."
+  local exe_files=$(find build -name "*.exe" -type f)
+  if [ -n "$exe_files" ]; then
+    echo "找到以下exe文件:"
+    echo "$exe_files"
+    
+    # 复制所有exe文件到app目录
+    while IFS= read -r exe_file; do
+      if [ -f "$exe_file" ]; then
+        echo "拷贝: $exe_file -> $app_dir/"
+        cp "$exe_file" "$app_dir/"
+      fi
+    done <<< "$exe_files"
   else
-    echo "Error: Binary not found at build/robot.exe"
+    echo "错误: 在build目录下未找到任何exe文件"
     exit 1
   fi
   
@@ -111,7 +128,7 @@ clean_build() {
   echo "清理build目录..."
   if [ -d "build" ]; then
     echo "删除build目录及其所有内容..."
-    rm -rf build
+    rm -rf build/*
     echo "清理完成"
   else
     echo "build目录不存在，无需清理"
