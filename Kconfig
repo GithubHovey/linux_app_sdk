@@ -33,7 +33,12 @@ config BUILD_DIR_NAME
     default "build"
     help
       Name of the build directory (e.g. build or build_xx)
-
+      
+config APP_NAMES
+    string "Application names (comma-separated)"
+    default "demo_main"
+    help
+      Comma-separated list of application names to compile (e.g. demo_main,guide_dart,camera_calibration)
 source "src/hal/Kconfig"
 source "src/drivers/Kconfig"
 source "src/modules/Kconfig"

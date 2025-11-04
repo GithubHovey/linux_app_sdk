@@ -9,6 +9,19 @@ find_package(spdlog REQUIRED)
 message(STATUS "spdlog include dirs: ${spdlog_INCLUDE_DIRS}")
 message(STATUS "spdlog libraries: ${spdlog_LIBRARIES}")
 
+file(GLOB SRC ${CMAKE_CURRENT_SOURCE_DIR}/${APP_NAME}/main/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/modules/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/drivers/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/utils/log/*.cpp 
+    )
+include_directories( 
+    ${CMAKE_SOURCE_DIR}/src/modules
+    ${CMAKE_SOURCE_DIR}/src/drivers
+    ${CMAKE_SOURCE_DIR}/src/hal
+    ${CMAKE_SOURCE_DIR}/src/utils
+)
+
 add_executable(${PROJECT_NAME} 
         ${SRC}
         # ${AICHAT_SRC}
@@ -105,44 +118,44 @@ if("${USE_MODULE_AICHAT}" STREQUAL "y")
     )
 endif()
 #VISION ENABLE
-if("${USE_MODULE_VISION}" STREQUAL "y")
-    file(GLOB VISION_SRC
-        ${CMAKE_SOURCE_DIR}/src/modules/vision/*.cpp
-        ${CMAKE_SOURCE_DIR}/src/drivers/camera/*.cpp
-        
 
-    )
-    include_directories( 
-            ${CMAKE_SOURCE_DIR}/src/modules/vision
-            ${CMAKE_SOURCE_DIR}/src/drivers/camera
-        )
-    if("${USE_V4L2}" STREQUAL "y")
-        list(APPEND VISION_SRC ${CMAKE_SOURCE_DIR}/src/hal/v4l2_capture.cpp
-                                #  ${CMAKE_SOURCE_DIR}/src/hal/rkcapture.cpp
-                                    ${CMAKE_SOURCE_DIR}/third_party/rockchip/rkaiq/sample_common_isp.c                                 
-                                    )
-        
-        # include_directories( 
-        #     ${CMAKE_SOURCE_DIR}/third_party/rockchip/rkaiq
-        #     ${CMAKE_SYSROOT}/usr/include/easymedia
-        #     ${CMAKE_SYSROOT}/usr/include/rkaiq/uAPI
-        #     ${CMAKE_SYSROOT}/usr/include/rkaiq/xcore
-        #     ${CMAKE_SYSROOT}/usr/include/rkaiq/common
-        #     ${CMAKE_SYSROOT}/usr/include/rkaiq/algos
-        #     ${CMAKE_SYSROOT}/usr/include/rkaiq/iq_parser
-        #     ${CMAKE_SYSROOT}/usr/include/rkaiq/ipc_server
-        # )
+file(GLOB VISION_SRC
+    ${CMAKE_SOURCE_DIR}/src/modules/vision/*.cpp
+    ${CMAKE_SOURCE_DIR}/src/drivers/camera/*.cpp
+    
 
-    endif()
-    target_sources(${PROJECT_NAME} PRIVATE
-        ${VISION_SRC}
+)
+include_directories( 
+        ${CMAKE_SOURCE_DIR}/src/modules/vision
+        ${CMAKE_SOURCE_DIR}/src/drivers/camera
     )
-    # target_compile_definitions(${PROJECT_NAME} PRIVATE
-    #     USE_RKMEDIA
-    #     RKAIQ
+if("${USE_V4L2}" STREQUAL "y")
+    list(APPEND VISION_SRC ${CMAKE_SOURCE_DIR}/src/hal/v4l2_capture.cpp
+                            #  ${CMAKE_SOURCE_DIR}/src/hal/rkcapture.cpp
+                                ${CMAKE_SOURCE_DIR}/third_party/rockchip/rkaiq/sample_common_isp.c                                 
+                                )
+    
+    # include_directories( 
+    #     ${CMAKE_SOURCE_DIR}/third_party/rockchip/rkaiq
+    #     ${CMAKE_SYSROOT}/usr/include/easymedia
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/uAPI
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/xcore
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/common
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/algos
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/iq_parser
+    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/ipc_server
     # )
-    # target_link_libraries(${PROJECT_NAME} PRIVATE
-    #     easymedia
-    #     rkaiq
-    # )
+
 endif()
+target_sources(${PROJECT_NAME} PRIVATE
+    ${VISION_SRC}
+)
+# target_compile_definitions(${PROJECT_NAME} PRIVATE
+#     USE_RKMEDIA
+#     RKAIQ
+# )
+# target_link_libraries(${PROJECT_NAME} PRIVATE
+#     easymedia
+#     rkaiq
+# )
+

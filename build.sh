@@ -8,21 +8,25 @@ cross_compile_flag=ON
 pack_flag=OFF
 app_name=""
 debug_flag=OFF
+all_flag=OFF
 
 # Functions
 usage() {
-  echo "Usage: $0 [-s | -p | -m | -clean | -app app_name [-d]]"
+  echo "Usage: $0 [-s | -p | -m | -clean | -app app_name [-d] | -all [-d]]"
   echo "Options:"
   echo "  -s           Compile for simulator (Ubuntu system,独立模式)"
   echo "  -p           Package only (no compilation,独立模式)"
   echo "  -m           Launch Kconfig menu configuration (独立模式)"
-  echo "  --clean      删除build目录下的所有内容 (独立模式)"
+  echo "  -clean      删除build目录下的所有内容 (独立模式)"
   echo "  -app name    指定要编译的app名称 (必须)"
-  echo "  -d           添加debug符号 (仅与-app一起使用)"
+  echo "  -d           添加debug符号 (仅与-app或-all一起使用)"
+  echo "  -all         编译.config中CONFIG_APP_NAMES指定的所有应用"
   echo ""
   echo "示例: $0 -app demo_main     # 编译demo_main应用"
   echo "      $0 -app demo_main -d # 编译demo_main应用并带debug符号"
-  echo "      $0 -clean       # 清理build目录"
+  echo "      $0 -all              # 编译所有配置的应用"
+  echo "      $0 -all -d           # 编译所有配置的应用并带debug符号"
+  echo "      $0 -clean             # 清理build目录"
   exit 1
 }
 
@@ -42,6 +46,59 @@ cross_compile() {
   make -j4
 }
 
+# 从.config文件读取APP_NAMES配置
+read_app_names_from_config() {
+  if [ -f "${SCRIPT_DIR}/.config" ]; then
+    local app_names_line=$(grep '^CONFIG_APP_NAMES=' "${SCRIPT_DIR}/.config")
+    if [ -n "$app_names_line" ]; then
+      # 提取引号内的内容，并去除引号
+      local app_names=$(echo "$app_names_line" | sed -E 's/^CONFIG_APP_NAMES="([^"]*)"$/\1/')
+      echo "$app_names"
+    else
+      echo ""
+    fi
+  else
+    echo ""
+  fi
+}
+
+# 批量编译所有应用
+compile_all_apps() {
+  local app_names=$(read_app_names_from_config)
+  
+  if [ -z "$app_names" ]; then
+    echo "错误: 未在.config文件中找到CONFIG_APP_NAMES配置"
+    exit 1
+  fi
+  
+  echo "从.config文件中读取的应用列表: $app_names"
+  
+  # 用逗号分隔应用名称
+  IFS=',' read -ra app_list <<< "$app_names"
+    # 定义颜色代码
+  local BLUE='\033[0;34m'
+  local NC='\033[0m' # No Color
+  echo -e "${BLUE}开始编译以下应用:${NC}"
+  printf "${BLUE}%s${NC}\n" "${app_list[@]}"
+  echo ""
+  
+  for app in "${app_list[@]}"; do
+    app=$(echo "$app" | xargs)  # 去除前后空格
+    if [ -n "$app" ]; then
+      echo "=== 编译应用: $app ==="
+      app_name="$app"
+      create_build_dir
+      kconfig2cmake
+      cross_compile
+      echo "=== 应用 $app 编译完成 ==="
+      echo ""
+      cd "$SCRIPT_DIR"  # 回到脚本目录，为下一个应用准备
+    fi
+  done
+  
+  echo "所有应用编译完成!"
+}
+
 package() {
   echo "Packaging..."
   local pack_dir="pack"
@@ -54,14 +111,7 @@ package() {
   # Create directories
   mkdir -p "$app_dir" "$out_dir"  # Added out_dir creation
   
-  # Copy binary
-  # if [ -f "build/robot.exe" ]; then
-  #   cp "build/robot.exe" "$app_dir/"
-  # else
-  #   echo "Error: Binary not found at build/robot.exe"
-  #   exit 1
-  # fi
-  echo "查找build目录下的所有exe文件..."
+  # 查找build目录下的所有exe文件...
   local exe_files=$(find build -name "*.exe" -type f)
   if [ -n "$exe_files" ]; then
     echo "找到以下exe文件:"
@@ -134,7 +184,70 @@ clean_build() {
     echo "build目录不存在，无需清理"
   fi
 }
-
+check_and_create_app_dirs() {
+  local app_names=$(read_app_names_from_config)
+  
+  if [ -z "$app_names" ]; then
+    echo "警告: 未在.config文件中找到CONFIG_APP_NAMES配置，跳过应用目录检查"
+    return 0
+  fi
+  
+  echo "检查应用目录..."
+  
+  # 用逗号分隔应用名称
+  IFS=',' read -ra app_list <<< "$app_names"
+  
+  # 定义颜色代码
+  local BLUE='\033[0;34m'
+  local GREEN='\033[0;32m'
+  local YELLOW='\033[1;33m'
+  local NC='\033[0m' # No Color
+  
+  echo -e "${BLUE}配置的应用列表: $app_names${NC}"
+  
+  for app in "${app_list[@]}"; do
+    app=$(echo "$app" | xargs)  # 去除前后空格
+    if [ -n "$app" ]; then
+      local app_dir="apps/${app}"
+      local cmake_file="${app_dir}/CMakeLists.txt"
+      
+      if [ -d "$app_dir" ]; then
+        echo -e "${GREEN}✓ 应用目录已存在: $app_dir${NC}"
+        
+        # 检查CMakeLists.txt是否存在
+        if [ -f "$cmake_file" ]; then
+          echo -e "${GREEN}  ✓ CMakeLists.txt已存在${NC}"
+        else
+          echo -e "${YELLOW}  ⚠ 创建空的CMakeLists.txt${NC}"
+          echo "# CMakeLists.txt for ${app}" > "$cmake_file"
+          echo "# 自动生成于 $(date +'%Y-%m-%d %H:%M:%S')" >> "$cmake_file"
+          echo "" >> "$cmake_file"
+        fi
+      else
+        echo -e "${YELLOW}⚠ 创建应用目录: $app_dir${NC}"
+        mkdir -p "$app_dir"
+        
+        # 创建main子目录
+        local main_dir="${app_dir}/main"
+        mkdir -p "$main_dir"
+        echo -e "${GREEN}  ✓ 创建main目录: $main_dir${NC}"
+        
+        # 创建空的CMakeLists.txt
+        echo -e "${YELLOW}  ⚠ 创建空的CMakeLists.txt${NC}"
+        echo "# CMakeLists.txt for ${app}" > "$cmake_file"
+        echo "# 自动生成于 $(date +'%Y-%m-%d %H:%M:%S')" >> "$cmake_file"
+        echo "# file(GLOB SRC \"main/*.cpp\" \"main/*.c\")" >> "$cmake_file"
+        echo "" >> "$cmake_file"
+        echo "# add_executable(\${PROJECT_NAME} \${SRC})" >> "$cmake_file"
+        echo "" >> "$cmake_file"
+        
+        echo -e "${GREEN}  ✓ 应用目录结构创建完成${NC}"
+      fi
+    fi
+  done
+  
+  echo -e "${BLUE}应用目录检查完成${NC}"
+}
 # Main execution
 main() {
     # Parse arguments
@@ -153,6 +266,7 @@ main() {
     fi
     if [[ "$1" == "-m" ]]; then
       kconfig-mconf ${SCRIPT_DIR}/Kconfig
+      check_and_create_app_dirs
       exit 0
     fi
     if [[ "$1" == "-clean" ]]; then
@@ -160,7 +274,7 @@ main() {
       exit 0
     fi
 
-    # 编译模式，必须有-app
+    # 编译模式
     while [[ $# -gt 0 ]]; do
       case $1 in
         -app)
@@ -170,6 +284,9 @@ main() {
             usage
           fi
           app_name="$1"
+          ;;
+        -all)
+          all_flag=ON
           ;;
         -d)
           debug_flag=ON
@@ -182,14 +299,22 @@ main() {
       shift
     done
 
-    if [ -z "$app_name" ]; then
-      echo "Error: 必须指定-app app_name"
+    # 检查编译模式
+    if [ "$all_flag" = "ON" ]; then
+      if [ -n "$app_name" ]; then
+        echo "错误: -all 和 -app 不能同时使用"
+        usage
+      fi
+      compile_all_apps
+    elif [ -n "$app_name" ]; then
+      # 单个应用编译模式
+      create_build_dir
+      kconfig2cmake
+      cross_compile
+    else
+      echo "Error: 必须指定-app app_name 或 -all"
       usage
     fi
-
-    create_build_dir
-    kconfig2cmake
-    cross_compile
 }
 
 main "$@"
