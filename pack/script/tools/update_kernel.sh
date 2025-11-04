@@ -1,9 +1,14 @@
 #!/bin/bash
 DEVICE="/dev/mmcblk0"
 KERNEL_IMAGE="boot.img"
-START_OFFSET=0xC8000
-END_OFFSET=0x20C8000
+UBOOT_IMAGE="uboot.img"
+START_OFFSET=0x00008000  #0x00008000
+END_OFFSET=0x00028000  #0x03a3ffde
 BLOCK_SIZE=512  # 使用更小的块大小确保兼容性
+
+UBOOT_PARTITION="/dev/mmcblk0p1"
+KERNEL_PARTITION="/dev/mmcblk0p3"
+
 
 # 计算十进制值
 START_DEC=$((START_OFFSET))
@@ -17,7 +22,7 @@ if [ ! -f "$KERNEL_IMAGE" ]; then
 fi
 
 # 获取文件大小（兼容BusyBox）
-IMAGE_SIZE=$(wc -c < "$KERNEL_IMAGE")
+IMAGE_SIZE=$((wc -c < "$KERNEL_IMAGE")/BLOCK_SIZE)
 
 # 检查大小
 if [ "$IMAGE_SIZE" -gt "$PARTITION_SIZE" ]; then
@@ -40,13 +45,13 @@ esac
 
 # 擦除分区
 echo "Erasing partition..."
-dd if=/dev/zero of="$DEVICE" bs="$BLOCK_SIZE" seek=$((START_DEC/BLOCK_SIZE)) \
-   count=$((PARTITION_SIZE/BLOCK_SIZE)) conv=notrunc
+dd if=/dev/zero of="$DEVICE" bs="$BLOCK_SIZE" seek=$START_DEC \
+   count=$PARTITION_SIZE conv=notrunc
 
 # 写入镜像
 echo "Writing image..."
-dd if="$KERNEL_IMAGE" of="$DEVICE" bs="$BLOCK_SIZE" seek=$((START_DEC/BLOCK_SIZE)) \
-   conv=notrunc
-
+dd if="$KERNEL_IMAGE" of="$DEVICE" bs="$BLOCK_SIZE" seek=$START_DEC \
+   conv=fsync
+#dd if="$KERNEL_IMAGE" of="$KERNEL_PARTITION" conv=fsync
 
 echo "Done."
