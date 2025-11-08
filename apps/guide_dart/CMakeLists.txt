@@ -9,7 +9,7 @@ find_package(spdlog REQUIRED)
 message(STATUS "spdlog include dirs: ${spdlog_INCLUDE_DIRS}")
 message(STATUS "spdlog libraries: ${spdlog_LIBRARIES}")
 
-file(GLOB SRC ${CMAKE_CURRENT_SOURCE_DIR}/${APP_NAME}/main/*.cpp
+file(GLOB SRC ${CMAKE_SOURCE_DIR}/apps/${APP_NAME}/main/*.cpp
     ${CMAKE_SOURCE_DIR}/src/modules/*.cpp
     ${CMAKE_SOURCE_DIR}/src/drivers/*.cpp
     ${CMAKE_SOURCE_DIR}/src/utils/*.cpp
