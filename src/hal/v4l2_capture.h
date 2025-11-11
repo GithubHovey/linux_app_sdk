@@ -66,9 +66,7 @@ public:
     bool getControl(uint32_t ctrl_id, int32_t& value) const;
 
 private:
-
-
-    
+    v4l2_buf_type buffer_type_;
     void cleanupBuffers();
     std::shared_ptr<spdlog::logger> logger;
     std::string device_path_;

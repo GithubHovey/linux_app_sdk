@@ -30,8 +30,23 @@ if("${CROSS_COMPILE_ENABLED}" STREQUAL "y")# 是否交叉编译
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_C_STANDARD 99)#c99
     set(CMAKE_C_STANDARD_REQUIRED ON)
-
-    add_compile_options(-fPIC -O3 -g0)
+    
+    if(NOT CMAKE_BUILD_TYPE)
+        set(CMAKE_BUILD_TYPE "Release")
+    endif()
+    
+    message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+    
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        # Debug模式：关闭优化，包含调试信息
+        add_compile_options(-fPIC -O0 -g3)
+        message(STATUS "Debug模式：启用调试符号，关闭优化")
+    else()
+        # Release模式：优化性能，不包含调试信息
+        add_compile_options(-fPIC -O3 -g0)
+        message(STATUS "Release模式：启用优化，关闭调试符号")
+    endif()
+ 
 
     project(${APP_NAME}.exe)
     

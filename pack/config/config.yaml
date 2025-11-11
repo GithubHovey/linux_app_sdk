@@ -11,7 +11,7 @@ vision:
       channel_list:
         channel1:
           enable: true
-          name: "rkispp_scale0"
+          name: "/dev/video33"
           bufcnt: 10
           width: 1920
           height: 1080

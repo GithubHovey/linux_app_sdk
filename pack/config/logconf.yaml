@@ -1,4 +1,4 @@
-base_dir: "/oem/app/logs"  # 基础日志目录
+base_dir: "/root/app/logs"  # 基础日志目录
 global_conf:
   write_time: 3
 loggers:
@@ -9,14 +9,14 @@ loggers:
     level: "debug"           # trace/debug/info/warn/error/critical
     rotation: "size"        # size/daily/session/none
 
-  imx307:
+  imx415:
     file: "module/vision.log"   
     max_size: "100MB"
     max_days: 7
     level: "debug"
     rotation: "size"
 
-  rkispp_scale0:
+  /dev/video33:
     file: "module/vision.log"   
     max_size: "100MB"
     max_days: 7

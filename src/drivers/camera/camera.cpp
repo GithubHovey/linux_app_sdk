@@ -107,8 +107,8 @@ int Camera::init()
                 (uint32_t)channel->fix_height
                 );
             if(!ret) return;
-            // // ret = channel->capture->StartStream();
-            // if(!ret) return;
+            ret = channel->capture->StartStream();
+            if(!ret) return;
 
             struct timeval timestamp;
             auto last_fps_update = std::chrono::steady_clock::now();

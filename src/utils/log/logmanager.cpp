@@ -56,7 +56,7 @@ void LogManager::Initialize(const std::string& config_path) {
 void LogManager::LoadConfig(const std::string& config_path) {
     try {
         YAML::Node config = YAML::LoadFile(config_path);
-        std::string base_dir = config["base_dir"].as<std::string>("/userdata/app/logs");
+        std::string base_dir = config["base_dir"].as<std::string>("/root/app/logs");
         // spdlog::set_pattern("[%n] [%l] %v");
         // spdlog::flush_every(std::chrono::seconds(1));
         

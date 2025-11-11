@@ -141,12 +141,12 @@ package() {
       echo "警告: 未找到 $config_dir/config.yaml"
     fi
     
-    # 拷贝managerlog.yaml
-    if [ -f "$config_dir/managerlog.yaml" ]; then
-      echo "拷贝: $config_dir/managerlog.yaml -> $app_dir/"
-      cp "$config_dir/managerlog.yaml" "$app_dir/"
+    # logconf.yaml
+    if [ -f "$config_dir/logconf.yaml" ]; then
+      echo "拷贝: $config_dir/logconf.yaml -> $app_dir/"
+      cp "$config_dir/logconf.yaml" "$app_dir/"
     else
-      echo "警告: 未找到 $config_dir/managerlog.yaml"
+      echo "警告: 未找到 $config_dir/logconf.yaml"
     fi
   else
     echo "警告: 配置目录 $config_dir 不存在"

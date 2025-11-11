@@ -12,10 +12,9 @@
 V4L2Capture::V4L2Capture(std::string name, uint8_t buf_cnt)
     : device_path_(name), fd_(-1), is_streaming_(false), buffer_numb(buf_cnt)
     {
-        // logger = spdlog::basic_logger_mt(device, logfile);
-        // logger->set_level(spdlog::level::debug);  // 允许info及以上级别
-        // logger->info("---------------");
-        // logger->info("v4l2 devices register...");
+        logger = LogManager::GetLogger("vision");
+        logger->info("---------------");
+        logger->info("v4l2 devices register...");
     }
 
 V4L2Capture::~V4L2Capture() {
@@ -63,24 +62,47 @@ bool V4L2Capture::CheckCap()
     if (ioctl(fd_, VIDIOC_QUERYCAP, &cap) == -1) {
         ::close(fd_);
         fd_ = -1;
+        logger->error("VIDIOC_QUERYCAP failed for device: {}", device_path_);
         return false;
     }
-    logger->info("Driver Name:{}\nCard Name:{}\nBus info:{}\nDriver Version:{}.{}.{}\n"
-        ,reinterpret_cast<const char*>(cap.driver),reinterpret_cast<const char*>(cap.card),reinterpret_cast<const char*>(cap.bus_info),(cap.version>>16)&0XFF, (cap.version>>8)&0XFF,cap.version&0XFF);
-    if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+    
+    logger->info("Device: {}", device_path_);
+    logger->info("Driver: {}", reinterpret_cast<const char*>(cap.driver));
+    logger->info("Card: {}", reinterpret_cast<const char*>(cap.card));
+    logger->info("Capabilities: 0x{:x}", cap.capabilities);
+    
+    // 检查是否支持视频捕获（单平面或多平面）
+    bool supports_video_capture = (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) ||
+                                  (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE);
+    
+    if (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) {
+        logger->info("✓ Supports VIDEO_CAPTURE (single-planar)");
+        buffer_type_ = V4L2_BUF_TYPE_VIDEO_CAPTURE;  // 设置为单平面类型
+    }
+    
+    if (cap.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE) {
+        logger->info("✓ Supports VIDEO_CAPTURE_MPLANE (multi-planar)");
+        buffer_type_ = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;  // 设置为多平面类型
+    }
+    
+    if (!supports_video_capture) {
         ::close(fd_);
         fd_ = -1;
-        logger->error("no V4L2_CAP_VIDEO_CAPTURE cap!");
+        logger->error("Device {} does not support video capture capability (neither single-planar nor multi-planar)", device_path_);
         return false;
     }
+    
+    logger->info("Using buffer type: {}", (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) ? "MULTIPLANAR" : "SINGLE-PLANAR");
+    
     return true;
 }
+
 
 bool V4L2Capture::CheckSupportFormat()
 {
     struct v4l2_fmtdesc fmtdesc; 
     fmtdesc.index=0; 
-    fmtdesc.type=V4L2_BUF_TYPE_VIDEO_CAPTURE; 
+    fmtdesc.type=buffer_type_; 
     logger->info("Support format:");
     while(ioctl(fd_, VIDIOC_ENUM_FMT, &fmtdesc) != -1)
     {
@@ -129,7 +151,7 @@ std::vector<V4L2Capture::PixelFormat> V4L2Capture::enumFormats() const {
     if (!isOpened()) return formats;
 
     v4l2_fmtdesc fmt_desc = {};
-    fmt_desc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmt_desc.type = buffer_type_;
 
     while (ioctl(fd_, VIDIOC_ENUM_FMT, &fmt_desc) == 0) {
         PixelFormat pf;
@@ -146,7 +168,7 @@ bool V4L2Capture::SetFormat(uint32_t width, uint32_t height, uint32_t pixfmt) {
     if (!isOpened()) return false;
 
     v4l2_format fmt = {};
-    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmt.type = buffer_type_;
     fmt.fmt.pix.width = width;
     fmt.fmt.pix.height = height;
     fmt.fmt.pix.pixelformat = pixfmt;
@@ -167,7 +189,7 @@ bool V4L2Capture::GetFormat(uint32_t& width, uint32_t& height, uint32_t& pixfmt)
     if (!isOpened()) return false;
 
     v4l2_format fmt = {};
-    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmt.type = buffer_type_;
 
     if (ioctl(fd_, VIDIOC_G_FMT, &fmt) == -1) {
         return false;
@@ -184,37 +206,70 @@ bool V4L2Capture::SetFrameRate(uint32_t fps) {
     if (!isOpened() || fps == 0) return false;
 
     v4l2_streamparm parm = {};
-    parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    parm.type = buffer_type_;
 
-    // 获取当前参数
+    // 首先尝试获取当前参数
     if (ioctl(fd_, VIDIOC_G_PARM, &parm) == -1) {
-        logger->error("ioctl :VIDIOC_G_PARM fail.");
-        return false;
+        // 如果获取失败，可能是设备不支持VIDIOC_G_PARM
+        logger->warn("VIDIOC_G_PARM not supported, trying to set fps directly");
+        
+        // 直接设置参数，不检查当前状态
+        parm.type = buffer_type_;
+        
+        if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+            parm.parm.capture.timeperframe.numerator = 1;
+            parm.parm.capture.timeperframe.denominator = fps;
+        } else {
+            parm.parm.capture.timeperframe.numerator = 1;
+            parm.parm.capture.timeperframe.denominator = fps;
+        }
+
+        if (ioctl(fd_, VIDIOC_S_PARM, &parm) == -1) {
+            logger->warn("VIDIOC_S_PARM also failed, device may not support dynamic fps setting");
+            // 对于不支持动态帧率设置的设备，返回true表示忽略这个错误
+            // 因为很多设备在设置格式时就已经确定了帧率
+            return true;
+        }
+        
+        return true;
     }
 
-    // 检查是否支持帧率设置
-    if (!(parm.parm.capture.capability & V4L2_CAP_TIMEPERFRAME)) {
-        logger->error("not support fps configuration");
-        return false;
+    // 如果获取成功，检查是否支持帧率设置
+    bool supports_timeperframe = false;
+    if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        supports_timeperframe = (parm.parm.capture.capability & V4L2_CAP_TIMEPERFRAME);
+    } else {
+        supports_timeperframe = (parm.parm.capture.capability & V4L2_CAP_TIMEPERFRAME);
+    }
+
+    if (!supports_timeperframe) {
+        logger->warn("Device does not support dynamic fps configuration");
+        return true;  // 返回true表示忽略这个错误
     }
 
     // 设置帧率 (fps = 1/timeperframe)
-    parm.parm.capture.timeperframe.numerator = 1;
-    parm.parm.capture.timeperframe.denominator = fps;
+    if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        parm.parm.capture.timeperframe.numerator = 1;
+        parm.parm.capture.timeperframe.denominator = fps;
+    } else {
+        parm.parm.capture.timeperframe.numerator = 1;
+        parm.parm.capture.timeperframe.denominator = fps;
+    }
 
     if (ioctl(fd_, VIDIOC_S_PARM, &parm) == -1) {
+        logger->error("ioctl :VIDIOC_S_PARM fail.");
         return false;
     }
     
+    logger->info("Frame rate set to {} fps", fps);
     return true;
 }
-
 bool V4L2Capture::StartStream(uint32_t buffer_count) {
     if (!isOpened() || is_streaming_) return false;
     // 将所有缓冲区加入队列
     for (uint32_t i = 0; i < buffer_list.size(); ++i) {
         v4l2_buffer buf = {};
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.type = buffer_type_;
         buf.memory = V4L2_MEMORY_MMAP;
         buf.index = i;
 
@@ -225,7 +280,7 @@ bool V4L2Capture::StartStream(uint32_t buffer_count) {
     }
 
     // 开始流
-    v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    v4l2_buf_type type = buffer_type_;
     if (ioctl(fd_, VIDIOC_STREAMON, &type) == -1) {
         cleanupBuffers();
         return false;
@@ -239,7 +294,7 @@ bool V4L2Capture::StartStream(uint32_t buffer_count) {
 bool V4L2Capture::StopStream() {
     if (!is_streaming_) return true;
 
-    v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    v4l2_buf_type type = buffer_type_;
     if (ioctl(fd_, VIDIOC_STREAMOFF, &type) == -1) {
         return false;
     }
@@ -271,7 +326,7 @@ bool V4L2Capture::captureFrame(void*& image_data, size_t & size, uint8_t & index
     if (r == -1) return false; // 错误
 
     v4l2_buffer buf = {};
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.type = buffer_type_;
     buf.memory = V4L2_MEMORY_MMAP;
 
     if (ioctl(fd_, VIDIOC_DQBUF, &buf) == -1) {
@@ -301,7 +356,7 @@ bool V4L2Capture::returnFrame(uint32_t index) {
     if (!is_streaming_) return false;
 
     v4l2_buffer buf = {};
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.type = buffer_type_;
     buf.memory = V4L2_MEMORY_MMAP;
     buf.index = index;
 
@@ -346,7 +401,7 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
     // 请求缓冲区
     v4l2_requestbuffers req = {};
     req.count = buffer_count;
-    req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    req.type = buffer_type_;
     req.memory = V4L2_MEMORY_MMAP;
 
     if (ioctl(fd_, VIDIOC_REQBUFS, &req) == -1) {
@@ -362,7 +417,7 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
     // 映射缓冲区
     for (uint32_t i = 0; i < req.count; ++i) {
         v4l2_buffer buf = {};
-        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.type = buffer_type_;
         buf.memory = V4L2_MEMORY_MMAP;
         buf.index = i;
 
@@ -383,7 +438,9 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
             return false;
         }
     }
-
+    logger->info("Buffers initialized: {} buffers, type={}", 
+                req.count, 
+                (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) ? "MULTIPLANAR" : "SINGLE-PLANAR");
     return true;
 }
 
