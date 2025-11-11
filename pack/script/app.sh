@@ -1,11 +1,11 @@
 #!/bin/bash
 
 function start() {
-    "$(dirname "$0")"/skg_master &
+    "$(dirname "$0")"/guide_dart.exe &
 }
 
 function stop() {
-    pkill -f "skg_master"
+    pkill -f "guide_dart.exe"
 }
 
 case "$1" in
