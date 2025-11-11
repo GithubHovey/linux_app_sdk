@@ -128,7 +128,29 @@ package() {
     echo "错误: 在build目录下未找到任何exe文件"
     exit 1
   fi
-  
+    # 拷贝pack/config/目录下的配置文件
+  local config_dir="$pack_dir/config"
+  if [ -d "$config_dir" ]; then
+    echo "拷贝配置文件..."
+    
+    # 拷贝config.yaml
+    if [ -f "$config_dir/config.yaml" ]; then
+      echo "拷贝: $config_dir/config.yaml -> $app_dir/"
+      cp "$config_dir/config.yaml" "$app_dir/"
+    else
+      echo "警告: 未找到 $config_dir/config.yaml"
+    fi
+    
+    # 拷贝managerlog.yaml
+    if [ -f "$config_dir/managerlog.yaml" ]; then
+      echo "拷贝: $config_dir/managerlog.yaml -> $app_dir/"
+      cp "$config_dir/managerlog.yaml" "$app_dir/"
+    else
+      echo "警告: 未找到 $config_dir/managerlog.yaml"
+    fi
+  else
+    echo "警告: 配置目录 $config_dir 不存在"
+  fi
   # # Copy GUI config
   # local gui_config="src/modules/gui/gui_guider_480x480/custom/lvgl_config"
   # if [ -d "$gui_config" ]; then
