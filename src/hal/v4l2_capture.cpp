@@ -21,28 +21,29 @@ V4L2Capture::~V4L2Capture() {
     if (is_streaming_) StopStream();
     if (fd_ != -1) close();
 }
-int V4L2Capture::init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t rotation, uint32_t outputWidth, uint32_t outputHeight)
+bool V4L2Capture::init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t rotation, uint32_t outputWidth, uint32_t outputHeight)
 {
     bool ret = Open(); 
-    if(!ret) return -1;
+    if(!ret) return false;
     ret = CheckCap(); //确认设备支持视频采集
-    if(!ret) return -2;
+    if(!ret) return false;
     ret = CheckSupportFormat(); //查看v4l2设备支持的格式
-    if(!ret) return -3;
+    if(!ret) return false;
     uint32_t pixel_format;
     if(outputFormat == "NV12")
         pixel_format = V4L2_PIX_FMT_NV12;
     else if(outputFormat == "RGB888")
         pixel_format = V4L2_PIX_FMT_RGB24;
     else
-        return -4;
+        return false;
     ret = SetFormat(width, height, pixel_format);
-    if(!ret) return -4;
+    if(!ret) return false;
     ret = SetFrameRate(fps);
-    if(!ret) return -5;
+    if(!ret) return false;
     ret = InitBuffers(buffer_numb);
-    if(!ret) return -6;
-    return 0;
+    if(!ret) return false;
+    logger->info("init v4l2 device success!");
+    return true;
 }
 bool V4L2Capture::Open() {
     if (isOpened()) return true;
@@ -266,16 +267,42 @@ bool V4L2Capture::SetFrameRate(uint32_t fps) {
 }
 bool V4L2Capture::StartStream(uint32_t buffer_count) {
     if (!isOpened() || is_streaming_) return false;
+    
     // 将所有缓冲区加入队列
     for (uint32_t i = 0; i < buffer_list.size(); ++i) {
-        v4l2_buffer buf = {};
-        buf.type = buffer_type_;
-        buf.memory = V4L2_MEMORY_MMAP;
-        buf.index = i;
+        if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+            v4l2_buffer buf = {};
+            v4l2_plane planes[VIDEO_MAX_PLANES] = {};
+            
+            buf.type = buffer_type_;
+            buf.memory = V4L2_MEMORY_MMAP;
+            buf.index = i;
+            buf.m.planes = planes;
+            buf.length = VIDEO_MAX_PLANES;
 
-        if (ioctl(fd_, VIDIOC_QBUF, &buf) == -1) {
-            cleanupBuffers();
-            return false;
+            // 关键修复：正确初始化planes数组
+            for (uint32_t j = 0; j < VIDEO_MAX_PLANES; ++j) {
+                buf.m.planes[j].bytesused = 0;
+                buf.m.planes[j].length = 0;
+                buf.m.planes[j].data_offset = 0;
+            }
+
+            if (ioctl(fd_, VIDIOC_QBUF, &buf) == -1) {
+                cleanupBuffers();
+                logger->error("VIDIOC_QBUF failed for multi-planar: {}", strerror(errno));
+                return false;
+            }
+        } else {
+            v4l2_buffer buf = {};
+            buf.type = buffer_type_;
+            buf.memory = V4L2_MEMORY_MMAP;
+            buf.index = i;
+
+            if (ioctl(fd_, VIDIOC_QBUF, &buf) == -1) {
+                cleanupBuffers();
+                logger->error("VIDIOC_QBUF failed: {}", strerror(errno));
+                return false;
+            }
         }
     }
 
@@ -283,6 +310,7 @@ bool V4L2Capture::StartStream(uint32_t buffer_count) {
     v4l2_buf_type type = buffer_type_;
     if (ioctl(fd_, VIDIOC_STREAMON, &type) == -1) {
         cleanupBuffers();
+        logger->error("VIDIOC_STREAMON failed: {}", strerror(errno));
         return false;
     }
 
@@ -290,7 +318,6 @@ bool V4L2Capture::StartStream(uint32_t buffer_count) {
     logger->info("start stream ...");
     return true;
 }
-
 bool V4L2Capture::StopStream() {
     if (!is_streaming_) return true;
 
@@ -309,9 +336,11 @@ bool V4L2Capture::isStreaming() const {
 }
 
 bool V4L2Capture::captureFrame(void*& image_data, size_t & size, uint8_t & index, timeval & timestamp, int timeout_ms) 
-// void*& image_data, size_t & size, uint8_t & index, timeval & timestamp, int timeout_ms
 {
-    if (!is_streaming_) return false;
+    if (!is_streaming_) {
+        logger->error("captureFrame failed: stream is not started");
+        return false;
+    }
 
     fd_set fds;
     FD_ZERO(&fds);
@@ -321,33 +350,84 @@ bool V4L2Capture::captureFrame(void*& image_data, size_t & size, uint8_t & index
     tv.tv_sec = timeout_ms / 1000;
     tv.tv_usec = (timeout_ms % 1000) * 1000;
 
+    logger->debug("Waiting for frame with timeout: {}ms", timeout_ms);
     int r = select(fd_ + 1, &fds, nullptr, nullptr, &tv);
-    if (r == 0) return false; // 超时
-    if (r == -1) return false; // 错误
-
-    v4l2_buffer buf = {};
-    buf.type = buffer_type_;
-    buf.memory = V4L2_MEMORY_MMAP;
-
-    if (ioctl(fd_, VIDIOC_DQBUF, &buf) == -1) {
-        return false;
+    
+    if (r == 0) {
+        logger->debug("select timeout: no frame available within {}ms", timeout_ms);
+        return false; // 超时
+    }
+    if (r == -1) {
+        logger->error("select error: {}", strerror(errno));
+        return false; // 错误
     }
 
-    if (buf.index >= buffer_list.size()) {
-        // 异常情况，重新加入队列
-        ioctl(fd_, VIDIOC_QBUF, &buf);
-        return false;
-    }
-    // buffer = buffer_list[buf.index];
-    timestamp = buf.timestamp;
-    image_data = buffer_list[buf.index].start;
-    index = buf.index;
-    size = buf.bytesused;
+    logger->debug("select returned: {} (frame available)", r);
 
-    // frame.data = buffer_list[buf.index].start;
-    // frame.size = buf.bytesused;
-    // frame.index = buf.index;
-    // frame.timestamp = buf.timestamp;
+    // 处理多平面设备
+    if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        v4l2_buffer buf = {};
+        v4l2_plane planes[VIDEO_MAX_PLANES] = {};
+        
+        buf.type = buffer_type_;
+        buf.memory = V4L2_MEMORY_MMAP;
+        buf.m.planes = planes;
+        buf.length = VIDEO_MAX_PLANES;
+
+        // 关键修复：正确初始化planes数组
+        for (uint32_t i = 0; i < VIDEO_MAX_PLANES; ++i) {
+            buf.m.planes[i].bytesused = 0;
+            buf.m.planes[i].length = 0;
+            buf.m.planes[i].data_offset = 0;
+        }
+
+        if (ioctl(fd_, VIDIOC_DQBUF, &buf) == -1) {
+            logger->error("VIDIOC_DQBUF failed for multi-planar: {}", strerror(errno));
+            return false;
+        }
+
+        logger->debug("Multi-planar VIDIOC_DQBUF success: index={}, plane0_bytes_used={}", 
+                     buf.index, buf.m.planes[0].bytesused);
+
+        if (buf.index >= buffer_list.size()) {
+            logger->error("Buffer index out of range: {} >= {}", buf.index, buffer_list.size());
+            ioctl(fd_, VIDIOC_QBUF, &buf);
+            return false;
+        }
+
+        timestamp = buf.timestamp;
+        image_data = buffer_list[buf.index].start;
+        index = buf.index;
+        size = buf.m.planes[0].bytesused; // 使用第一个平面的数据大小
+
+    } else {
+        // 单平面设备处理（原有逻辑）
+        v4l2_buffer buf = {};
+        buf.type = buffer_type_;
+        buf.memory = V4L2_MEMORY_MMAP;
+
+        if (ioctl(fd_, VIDIOC_DQBUF, &buf) == -1) {
+            logger->error("VIDIOC_DQBUF failed: {}", strerror(errno));
+            return false;
+        }
+
+        logger->debug("Single-planar VIDIOC_DQBUF success: index={}, bytes_used={}", 
+                     buf.index, buf.bytesused);
+
+        if (buf.index >= buffer_list.size()) {
+            logger->error("Buffer index out of range: {} >= {}", buf.index, buffer_list.size());
+            ioctl(fd_, VIDIOC_QBUF, &buf);
+            return false;
+        }
+
+        timestamp = buf.timestamp;
+        image_data = buffer_list[buf.index].start;
+        index = buf.index;
+        size = buf.bytesused;
+    }
+
+    logger->debug("Frame captured: index={}, size={} bytes, timestamp={}.{}", 
+                 index, size, timestamp.tv_sec, timestamp.tv_usec);
 
     return true;
 }
@@ -355,13 +435,37 @@ bool V4L2Capture::captureFrame(void*& image_data, size_t & size, uint8_t & index
 bool V4L2Capture::returnFrame(uint32_t index) {
     if (!is_streaming_) return false;
 
-    v4l2_buffer buf = {};
-    buf.type = buffer_type_;
-    buf.memory = V4L2_MEMORY_MMAP;
-    buf.index = index;
+    if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        v4l2_buffer buf = {};
+        v4l2_plane planes[VIDEO_MAX_PLANES] = {};
+        
+        buf.type = buffer_type_;
+        buf.memory = V4L2_MEMORY_MMAP;
+        buf.index = index;
+        buf.m.planes = planes;
+        buf.length = VIDEO_MAX_PLANES;
 
-    if (ioctl(fd_, VIDIOC_QBUF, &buf) == -1) {
-        return false;
+        // 关键修复：正确初始化planes数组
+        for (uint32_t i = 0; i < VIDEO_MAX_PLANES; ++i) {
+            buf.m.planes[i].bytesused = 0;
+            buf.m.planes[i].length = 0;
+            buf.m.planes[i].data_offset = 0;
+        }
+
+        if (ioctl(fd_, VIDIOC_QBUF, &buf) == -1) {
+            logger->error("VIDIOC_QBUF failed for multi-planar: {}", strerror(errno));
+            return false;
+        }
+    } else {
+        v4l2_buffer buf = {};
+        buf.type = buffer_type_;
+        buf.memory = V4L2_MEMORY_MMAP;
+        buf.index = index;
+
+        if (ioctl(fd_, VIDIOC_QBUF, &buf) == -1) {
+            logger->error("VIDIOC_QBUF failed: {}", strerror(errno));
+            return false;
+        }
     }
 
     return true;
@@ -394,7 +498,7 @@ bool V4L2Capture::getControl(uint32_t ctrl_id, int32_t& value) const {
     value = ctrl.value;
     return true;
 }
-
+// ... existing code ...
 bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
     if (buffer_count < 2) return false;
 
@@ -405,40 +509,102 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
     req.memory = V4L2_MEMORY_MMAP;
 
     if (ioctl(fd_, VIDIOC_REQBUFS, &req) == -1) {
+        logger->error("VIDIOC_REQBUFS failed: {}", strerror(errno));
         return false;
     }
 
     if (req.count < 2) {
+        logger->error("Requested {} buffers but got only {}", buffer_count, req.count);
         return false;
     }
 
     buffer_list.resize(req.count);
 
-    // 映射缓冲区
+    // 映射缓冲区 - 根据设备类型分别处理
     for (uint32_t i = 0; i < req.count; ++i) {
-        v4l2_buffer buf = {};
-        buf.type = buffer_type_;
-        buf.memory = V4L2_MEMORY_MMAP;
-        buf.index = i;
+        if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+            // 多平面设备处理
+            v4l2_buffer buf = {};
+            v4l2_plane planes[VIDEO_MAX_PLANES] = {};
+            
+            buf.type = buffer_type_;
+            buf.memory = V4L2_MEMORY_MMAP;
+            buf.index = i;
+            buf.m.planes = planes;
+            buf.length = VIDEO_MAX_PLANES;  // 先查询最大可能平面数
 
-        if (ioctl(fd_, VIDIOC_QUERYBUF, &buf) == -1) {
-            cleanupBuffers();
-            return false;
+            if (ioctl(fd_, VIDIOC_QUERYBUF, &buf) == -1) {
+                logger->error("VIDIOC_QUERYBUF failed for multi-planar: {}", strerror(errno));
+                cleanupBuffers();
+                return false;
+            }
+
+            // 关键修复：使用设备实际返回的平面数量
+            uint32_t actual_planes = buf.length;
+            logger->info("Buffer {} has {} planes (NV12 should have 2)", i, actual_planes);
+
+            // 只映射实际存在的平面
+            for (uint32_t plane_idx = 0; plane_idx < actual_planes; ++plane_idx) {
+                buffer_list[i].planes[plane_idx].start = mmap(nullptr, buf.m.planes[plane_idx].length,
+                                                        PROT_READ | PROT_WRITE,
+                                                        MAP_SHARED,
+                                                        fd_, buf.m.planes[plane_idx].m.mem_offset);
+                buffer_list[i].planes[plane_idx].length = buf.m.planes[plane_idx].length;
+                buffer_list[i].planes[plane_idx].offset = buf.m.planes[plane_idx].data_offset;
+
+                if (buffer_list[i].planes[plane_idx].start == MAP_FAILED) {
+                    logger->error("mmap failed for buffer {} plane {}: {}", 
+                                 i, plane_idx, strerror(errno));
+                    cleanupBuffers();
+                    return false;
+                }
+
+                logger->debug("Multi-planar buffer {} plane {} mapped: offset={}, length={}, data_offset={}", 
+                             i, plane_idx, buf.m.planes[plane_idx].m.mem_offset, 
+                             buf.m.planes[plane_idx].length, buf.m.planes[plane_idx].data_offset);
+            }
+
+            // 对于向后兼容，设置主缓冲区指针为第一个平面
+            buffer_list[i].start = buffer_list[i].planes[0].start;
+            buffer_list[i].length = buffer_list[i].planes[0].length;
+
+        } else {
+            // 单平面设备处理（原有逻辑）
+            v4l2_buffer buf = {};
+            buf.type = buffer_type_;
+            buf.memory = V4L2_MEMORY_MMAP;
+            buf.index = i;
+
+            if (ioctl(fd_, VIDIOC_QUERYBUF, &buf) == -1) {
+                logger->error("VIDIOC_QUERYBUF failed: {}", strerror(errno));
+                cleanupBuffers();
+                return false;
+            }
+
+            buffer_list[i].start = mmap(nullptr, buf.length,
+                                    PROT_READ | PROT_WRITE,
+                                    MAP_SHARED,
+                                    fd_, buf.m.offset);
+            buffer_list[i].length = buf.length;
+            buffer_list[i].index = i;
+
+            // 单平面设备：第一个平面就是整个缓冲区
+            buffer_list[i].planes[0].start = buffer_list[i].start;
+            buffer_list[i].planes[0].length = buffer_list[i].length;
+            buffer_list[i].planes[0].offset = 0;
+
+            logger->debug("Single-planar buffer {} mapped: offset={}, length={}", 
+                         i, buf.m.offset, buf.length);
         }
 
-        buffer_list[i].start = mmap(nullptr, buf.length,
-                                PROT_READ | PROT_WRITE,
-                                MAP_SHARED,
-                                fd_, buf.m.offset);
-        buffer_list[i].length = buf.length;
-        buffer_list[i].index = i;
-
         if (buffer_list[i].start == MAP_FAILED) {
+            logger->error("mmap failed for buffer {}: {}", i, strerror(errno));
             cleanupBuffers();
             return false;
         }
     }
-    logger->info("Buffers initialized: {} buffers, type={}", 
+    
+    logger->info("Buffersssssss initialized: {} buffers, type={}", 
                 req.count, 
                 (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) ? "MULTIPLANAR" : "SINGLE-PLANAR");
     return true;
@@ -446,8 +612,20 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
 
 void V4L2Capture::cleanupBuffers() {
     for (auto& buffer : buffer_list) {
-        if (buffer.start != nullptr && buffer.start != MAP_FAILED) {
-            munmap(buffer.start, buffer.length);
+        if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+            // 多平面设备：释放所有平面
+            for (uint32_t i = 0; i < VIDEO_MAX_PLANES; ++i) {
+                if (buffer.planes[i].start != nullptr && buffer.planes[i].start != MAP_FAILED) {
+                    munmap(buffer.planes[i].start, buffer.planes[i].length);
+                    buffer.planes[i].start = nullptr;
+                }
+            }
+        } else {
+            // 单平面设备
+            if (buffer.start != nullptr && buffer.start != MAP_FAILED) {
+                munmap(buffer.start, buffer.length);
+                buffer.start = nullptr;
+            }
         }
     }
     buffer_list.clear();

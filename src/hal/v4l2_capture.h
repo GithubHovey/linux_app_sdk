@@ -21,10 +21,16 @@ public:
         std::string description;
     };
 
-        struct Buffer {
+    struct Buffer {
         void* start;
         size_t length;
         uint32_t index;
+        // 多平面设备支持
+        struct Plane {
+            void* start;
+            size_t length;
+            size_t offset;
+        } planes[VIDEO_MAX_PLANES];
     };
 
     explicit V4L2Capture(std::string name, uint8_t buf_cnt = 10);
@@ -35,7 +41,7 @@ public:
     V4L2Capture& operator=(const V4L2Capture&) = delete;
 
     // 设备操作
-    int init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t rotation, uint32_t outputWidth, uint32_t outputHeight);
+    bool init(uint32_t width, uint32_t height, uint32_t fps, std::string outputFormat, uint32_t rotation, uint32_t outputWidth, uint32_t outputHeight);
     bool Open();
     void close();
     bool isOpened() const;

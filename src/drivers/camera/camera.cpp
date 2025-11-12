@@ -8,7 +8,7 @@
 
 #include <sys/time.h>
 #define BUFFER_NUMB 10
-#define QUEUE_POP_THRESHOLD 2
+#define QUEUE_POP_THRESHOLD 5
 class Camera::Impl {
 public:
     explicit Impl(const YAML::Node& config)
@@ -97,7 +97,7 @@ int Camera::init()
             continue;
         }
         std::thread t([this, channel = capture_channel.get()] {
-            int ret = channel->capture->init(
+            bool ret = channel->capture->init(
                 (uint32_t)channel->width,
                 (uint32_t)channel->height,
                 (uint32_t)channel->fps, // Default frame rate
@@ -106,27 +106,42 @@ int Camera::init()
                 (uint32_t)channel->fix_width,
                 (uint32_t)channel->fix_height
                 );
-            if(!ret) return;
+            if(!ret) 
+            {
+                channel->logger->error("capture init failed,ret = {}",ret);
+                return;
+            }
             ret = channel->capture->StartStream();
-            if(!ret) return;
+            if(!ret) 
+            {
+                channel->logger->error("capture start stream failed,ret = {}",ret);
+                return;
+            }
+            channel->logger->info("capture init success");
 
             struct timeval timestamp;
             auto last_fps_update = std::chrono::steady_clock::now();
             while(true) {
                 Frame frame;
+                channel->logger->debug("Capturing frame...");
+                //从内核队列中获得帧
                 if(channel->capture->captureFrame(frame.data, frame.size, frame.index, frame.timestamp)) {
-                    frame.ref_count = 0;
+                    frame.ref_count = 0;// 新捕获的帧引用计数初始化为0
                     {
                         std::lock_guard<std::mutex> lock(channel->queue_mutex);
-                        channel->frame_queue.push(std::move(frame));
+                        channel->frame_queue.push(std::move(frame));// 将帧移动到队列中
+// 检查队列是否超过阈值，若超过则将帧移动到返回队列,注意要判断引用计数是否为0，如果不为0说明这一帧正在被使用，不能移动到返回队列
                         while (channel->frame_queue.size() > QUEUE_POP_THRESHOLD) {
                             if(channel->frame_queue.front().ref_count.load() == 0) {
+                                // 移动到返回队列
                                 channel->frame_return_queue.push(std::move(channel->frame_queue.front()));
                                 channel->frame_queue.pop();
                             }
                         }
                     }
+                    // 如果返回队列有帧，则将帧的所有权交回给内核
                     while (!channel->frame_return_queue.empty()) {
+                        channel->logger->debug("Returning frame index {} to kernel...", channel->frame_return_queue.front().index);
                         if(!channel->capture->returnFrame(channel->frame_return_queue.front().index)) {
                             // Handle error if needed
                         }
@@ -139,7 +154,6 @@ int Camera::init()
 
                 if(elapsed >= 1000) {
                     double actual_fps = channel->fps_manager.counter / (elapsed / 1000.0);
-                    // LOG(INFO) << "FPS: " << actual_fps;
                     channel->logger->info("FPS = {}",actual_fps);
                     last_fps_update = now;
                     channel->fps_manager.counter = 0;
