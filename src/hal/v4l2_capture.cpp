@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iostream>
 
+#define NV12_PLANE_NUMB 1
 V4L2Capture::V4L2Capture(std::string name, uint8_t buf_cnt)
     : device_path_(name), fd_(-1), is_streaming_(false), buffer_numb(buf_cnt)
     {
@@ -170,19 +171,52 @@ bool V4L2Capture::SetFormat(uint32_t width, uint32_t height, uint32_t pixfmt) {
 
     v4l2_format fmt = {};
     fmt.type = buffer_type_;
-    fmt.fmt.pix.width = width;
-    fmt.fmt.pix.height = height;
-    fmt.fmt.pix.pixelformat = pixfmt;
-    fmt.fmt.pix.field = V4L2_FIELD_NONE;
+    
+    // 根据设备类型使用不同的格式结构
+    if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        // 多平面设备使用 pix_mp 结构
+        fmt.fmt.pix_mp.width = width;
+        fmt.fmt.pix_mp.height = height;
+        fmt.fmt.pix_mp.pixelformat = pixfmt;
+        fmt.fmt.pix_mp.field = V4L2_FIELD_NONE;
+        // 对于NV12格式，设置平面数量为2
+        fmt.fmt.pix_mp.num_planes = 2;
+    } else {
+        // 单平面设备使用 pix 结构
+        fmt.fmt.pix.width = width;
+        fmt.fmt.pix.height = height;
+        fmt.fmt.pix.pixelformat = pixfmt;
+        fmt.fmt.pix.field = V4L2_FIELD_NONE;
+    }
 
     if (ioctl(fd_, VIDIOC_S_FMT, &fmt) == -1) {
+        logger->error("VIDIOC_S_FMT failed: {}", strerror(errno));
         return false;
     }
 
     // 检查实际设置的格式
-    if (fmt.fmt.pix.pixelformat != pixfmt) {
-        return false;
+    if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        // 修复：不能直接引用位域，需要创建临时变量
+        uint32_t actual_pixelformat = fmt.fmt.pix_mp.pixelformat;
+        uint32_t actual_width = fmt.fmt.pix_mp.width;
+        uint32_t actual_height = fmt.fmt.pix_mp.height;
+        uint32_t actual_num_planes = fmt.fmt.pix_mp.num_planes;
+        
+        if (actual_pixelformat != pixfmt) {
+            logger->error("Format mismatch: requested 0x{:x}, got 0x{:x}", pixfmt, actual_pixelformat);
+            return false;
+        }
+        logger->info("Multi-planar format set: width={}, height={}, pixelformat=0x{:x}, num_planes={}", 
+                    actual_width, actual_height, actual_pixelformat, actual_num_planes);
+    } else {
+        // 单平面设备也需要同样的修复
+        uint32_t actual_pixelformat = fmt.fmt.pix.pixelformat;
+        if (actual_pixelformat != pixfmt) {
+            logger->error("Format mismatch: requested 0x{:x}, got 0x{:x}", pixfmt, actual_pixelformat);
+            return false;
+        }
     }
+    
     return true;
 }
 
@@ -272,16 +306,16 @@ bool V4L2Capture::StartStream(uint32_t buffer_count) {
     for (uint32_t i = 0; i < buffer_list.size(); ++i) {
         if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
             v4l2_buffer buf = {};
-            v4l2_plane planes[VIDEO_MAX_PLANES] = {};
+            v4l2_plane planes[NV12_PLANE_NUMB] = {};
             
             buf.type = buffer_type_;
             buf.memory = V4L2_MEMORY_MMAP;
             buf.index = i;
             buf.m.planes = planes;
-            buf.length = VIDEO_MAX_PLANES;
+            buf.length = NV12_PLANE_NUMB;
 
             // 关键修复：正确初始化planes数组
-            for (uint32_t j = 0; j < VIDEO_MAX_PLANES; ++j) {
+            for (uint32_t j = 0; j < NV12_PLANE_NUMB; ++j) {
                 buf.m.planes[j].bytesused = 0;
                 buf.m.planes[j].length = 0;
                 buf.m.planes[j].data_offset = 0;
@@ -367,15 +401,15 @@ bool V4L2Capture::captureFrame(void*& image_data, size_t & size, uint8_t & index
     // 处理多平面设备
     if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
         v4l2_buffer buf = {};
-        v4l2_plane planes[VIDEO_MAX_PLANES] = {};
+        v4l2_plane planes[NV12_PLANE_NUMB] = {};
         
         buf.type = buffer_type_;
         buf.memory = V4L2_MEMORY_MMAP;
         buf.m.planes = planes;
-        buf.length = VIDEO_MAX_PLANES;
+        buf.length = NV12_PLANE_NUMB;
 
         // 关键修复：正确初始化planes数组
-        for (uint32_t i = 0; i < VIDEO_MAX_PLANES; ++i) {
+        for (uint32_t i = 0; i < NV12_PLANE_NUMB; ++i) {
             buf.m.planes[i].bytesused = 0;
             buf.m.planes[i].length = 0;
             buf.m.planes[i].data_offset = 0;
@@ -396,7 +430,7 @@ bool V4L2Capture::captureFrame(void*& image_data, size_t & size, uint8_t & index
         }
 
         timestamp = buf.timestamp;
-        image_data = buffer_list[buf.index].start;
+        image_data = buffer_list[buf.index].planes[0].start;
         index = buf.index;
         size = buf.m.planes[0].bytesused; // 使用第一个平面的数据大小
 
@@ -437,16 +471,16 @@ bool V4L2Capture::returnFrame(uint32_t index) {
 
     if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
         v4l2_buffer buf = {};
-        v4l2_plane planes[VIDEO_MAX_PLANES] = {};
+        v4l2_plane planes[NV12_PLANE_NUMB] = {};
         
         buf.type = buffer_type_;
         buf.memory = V4L2_MEMORY_MMAP;
         buf.index = index;
         buf.m.planes = planes;
-        buf.length = VIDEO_MAX_PLANES;
+        buf.length = NV12_PLANE_NUMB;
 
         // 关键修复：正确初始化planes数组
-        for (uint32_t i = 0; i < VIDEO_MAX_PLANES; ++i) {
+        for (uint32_t i = 0; i < NV12_PLANE_NUMB; ++i) {
             buf.m.planes[i].bytesused = 0;
             buf.m.planes[i].length = 0;
             buf.m.planes[i].data_offset = 0;
@@ -525,13 +559,13 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
         if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
             // 多平面设备处理
             v4l2_buffer buf = {};
-            v4l2_plane planes[VIDEO_MAX_PLANES] = {};
+            v4l2_plane planes[NV12_PLANE_NUMB] = {};
             
             buf.type = buffer_type_;
             buf.memory = V4L2_MEMORY_MMAP;
             buf.index = i;
             buf.m.planes = planes;
-            buf.length = VIDEO_MAX_PLANES;  // 先查询最大可能平面数
+            buf.length = NV12_PLANE_NUMB;  // 先查询最大可能平面数
 
             if (ioctl(fd_, VIDIOC_QUERYBUF, &buf) == -1) {
                 logger->error("VIDIOC_QUERYBUF failed for multi-planar: {}", strerror(errno));
@@ -541,8 +575,7 @@ bool V4L2Capture::InitBuffers(uint32_t buffer_count) {
 
             // 关键修复：使用设备实际返回的平面数量
             uint32_t actual_planes = buf.length;
-            logger->info("Buffer {} has {} planes (NV12 should have 2)", i, actual_planes);
-
+            logger->info("Buffer {} has {} planes", i, actual_planes);
             // 只映射实际存在的平面
             for (uint32_t plane_idx = 0; plane_idx < actual_planes; ++plane_idx) {
                 buffer_list[i].planes[plane_idx].start = mmap(nullptr, buf.m.planes[plane_idx].length,
@@ -614,7 +647,7 @@ void V4L2Capture::cleanupBuffers() {
     for (auto& buffer : buffer_list) {
         if (buffer_type_ == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
             // 多平面设备：释放所有平面
-            for (uint32_t i = 0; i < VIDEO_MAX_PLANES; ++i) {
+            for (uint32_t i = 0; i < NV12_PLANE_NUMB; ++i) {
                 if (buffer.planes[i].start != nullptr && buffer.planes[i].start != MAP_FAILED) {
                     munmap(buffer.planes[i].start, buffer.planes[i].length);
                     buffer.planes[i].start = nullptr;
