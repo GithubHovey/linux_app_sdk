@@ -5,7 +5,6 @@
 #else
 #include "v4l2_capture.h"
 #endif
-
 #include <sys/time.h>
 #define BUFFER_NUMB 10
 #define QUEUE_POP_THRESHOLD 5
@@ -89,7 +88,6 @@ Camera::~Camera() = default;
 
 int Camera::init() 
 {
-#if 1
     for(auto& capture_channel : impl_->capture_list)
     {
         if(!capture_channel)
@@ -165,83 +163,19 @@ int Camera::init()
         t.detach(); // or store thread
     }
     return 0;
-#else
 
-    bool ret = impl_->capture.Open(); 
-    if(!ret) return -1;
-    ret = impl_->capture.CheckCap(); //确认设备支持视频采集
-    if(!ret) return -2;
-    ret = impl_->capture.CheckSupportFormat(); //查看v4l2设备支持的格式
-    if(!ret) return -3;
-    ret = impl_->capture.SetFormat(impl_->width, impl_->height, impl_->pixel_format);
-    if(!ret) return -4;
-    ret = impl_->capture.SetFrameRate(impl_->fps);
-    if(!ret) return -5;
-    ret = impl_->capture.InitBuffers(impl_->buffer_numb);
-    if(!ret) return -6;
-    // ret = impl_->capture.StartStream();
-    // if(!ret) return -7;
-    return 0;
-#endif
     
 }
-#if 0
-void Camera::CaptureThread(std::shared_ptr<CaptureChannel> capture_channel)
-{
-
-    bool ret = capture_channel->capture->init();
-    if(!ret) return ;
-    ret = capture_channel->capture->StartStream();
-    if(!ret) return ;
-
-    struct timeval timestamp;
-    auto last_fps_update = std::chrono::steady_clock::now();
-    while(true)
-    {
-        Frame frame;
-        if(capture_channel->capture->captureFrame(frame.data, frame.size, frame.index, frame.timestamp)) 
-
-        { //阻塞等待新帧
-            frame.ref_count = 0;
-            {
-                std::lock_guard<std::mutex> lock(capture_channel->queue_mutex);
-                capture_channel->frame_queue.push(std::move(frame));
-                while (capture_channel->frame_queue.size() > QUEUE_POP_THRESHOLD) {//旧帧（队序列>5）全部塞回内核
-                    //注意：这里没有给return队列上锁，不要在其他地方访问return队列
-                    if(capture_channel->frame_queue.front().ref_count.load() == 0)
-                    {
-                        capture_channel->frame_return_queue.push(std::move(capture_channel->frame_queue.front()));
-                        capture_channel->frame_queue.pop();
-                    }
-                }
-            }
-            while (!capture_channel->frame_return_queue.empty()) {
-                if(!capture_channel->capture.returnFrame(capture_channel->frame_return_queue.front().index))
-                {
-                    
-                }
-                capture_channel->frame_return_queue.pop();
-            }
-            capture_channel->fps_manager.counter++;
-        }
-        auto now = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_fps_update).count();
-
-        if(elapsed >= 1000) {
-            double actual_fps = capture_channel->fps_manager.counter / (elapsed / 1000.0);
-            // LOG(INFO) << "FPS: " << actual_fps;
-            capture_channel->logger->info("FPS = {}",actual_fps);
-            last_fps_update = now;
-            capture_channel->fps_manager.counter = 0;
-        }
-    }
-
-    capture_channel->capture->StopStream();
-    capture_channel->capture->close();
-}
-#endif
 Camera::Frame&  Camera::GetLatestFrame(uint8_t port)
 {
     std::lock_guard<std::mutex> lock(impl_->capture_list[port]->queue_mutex);
-    return impl_->capture_list[port]->frame_queue.back();
+    Frame& frame = impl_->capture_list[port]->frame_queue.back();
+    ++frame.ref_count;
+    return frame;
+}
+int Camera::RleaseFrame(uint8_t port, Frame& frame)
+{
+    std::lock_guard<std::mutex> lock(impl_->capture_list[port]->queue_mutex);
+    --frame.ref_count;
+    return 0;
 }

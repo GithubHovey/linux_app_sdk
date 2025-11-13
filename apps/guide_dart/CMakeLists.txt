@@ -57,67 +57,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     PRIVATE spdlog::spdlog
     # cjson
     yaml-cpp
+    rga
 )
-#GUI
-if("${USE_MODULE_GUI}" STREQUAL "y")
-    pkg_check_modules(LIBDRM REQUIRED libdrm)
-    include_directories(
-        ${CMAKE_SYSROOT}/usr/include/libdrm
-    )
-    include_directories(      
-            ${CMAKE_SOURCE_DIR}/src/modules/gui
-            ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2
-            ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl
-            ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl/src
-            ${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl/font
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/custom 
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated 
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_customer_fonts 
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts
-            ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/images 
-    )
-    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/lvgl_8.2/lvgl EXCLUDE_FROM_ALL)
-    file(GLOB GUI_SRC ${CMAKE_SOURCE_DIR}/src/*.cpp
-                ${CMAKE_SOURCE_DIR}/src/modules/gui/*.cpp
-                ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/custom/*.c
-                ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/*.c
-                ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/images/*.c
-                ${CMAKE_SOURCE_DIR}/src/modules/gui/nxp_guiguider/generated/guider_fonts/*.c
-                ${CMAKE_SOURCE_DIR}/src/hal/drm.c
-                ${CMAKE_SOURCE_DIR}/src/hal/fbdev.c
-                ${CMAKE_SOURCE_DIR}/src/hal/evdev.c
-    )
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        lvgl
-        drm
-    )
-    target_sources(${PROJECT_NAME} PRIVATE
-        ${GUI_SRC}
-    )
-endif()
 
-#AICHAT ENABEL
-if("${USE_MODULE_AICHAT}" STREQUAL "y")
-    add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/snowboy)
-    include_directories( 
-            ${CMAKE_SOURCE_DIR}/src/modules/aichat
-            ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper
-            ${CMAKE_SOURCE_DIR}/third_party/snowboy/include
-        )
-    file(GLOB AICHAT_SRC
-                ${CMAKE_SOURCE_DIR}/src/modules/aichat/*.cpp
-                ${CMAKE_SOURCE_DIR}/src/drivers/audio/portaudio_wrapper/*.cpp
-                
-    )
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        portaudio
-        snowboy-detect-c-wrapper
-    )
-    target_sources(${PROJECT_NAME} PRIVATE
-        ${AICHAT_SRC}
-    )
-endif()
-#VISION ENABLE
 
 file(GLOB VISION_SRC
     ${CMAKE_SOURCE_DIR}/src/modules/vision/*.cpp
@@ -130,21 +72,9 @@ include_directories(
         ${CMAKE_SOURCE_DIR}/src/drivers/camera
     )
 if("${USE_V4L2}" STREQUAL "y")
-    list(APPEND VISION_SRC ${CMAKE_SOURCE_DIR}/src/hal/v4l2_capture.cpp
-                            #  ${CMAKE_SOURCE_DIR}/src/hal/rkcapture.cpp
-                                ${CMAKE_SOURCE_DIR}/third_party/rockchip/rkaiq/sample_common_isp.c                                 
+    list(APPEND VISION_SRC ${CMAKE_SOURCE_DIR}/src/hal/v4l2_capture.cpp                         
                                 )
     
-    # include_directories( 
-    #     ${CMAKE_SOURCE_DIR}/third_party/rockchip/rkaiq
-    #     ${CMAKE_SYSROOT}/usr/include/easymedia
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/uAPI
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/xcore
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/common
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/algos
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/iq_parser
-    #     ${CMAKE_SYSROOT}/usr/include/rkaiq/ipc_server
-    # )
 
 endif()
 target_sources(${PROJECT_NAME} PRIVATE

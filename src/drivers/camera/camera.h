@@ -6,6 +6,8 @@
 #include <atomic>
 #include <vector>
 #include "yamlconfig.h"
+#include "rga/rga.h"
+#include "rga/im2d.h"
 class Camera {
 public:
     struct Frame {
@@ -43,6 +45,7 @@ public:
     bool getFrame(Frame& frame, uint32_t timeout_ms = 5000);
     bool returnFrame(const Frame& frame);
     Frame& GetLatestFrame(uint8_t port);
+    int RleaseFrame(uint8_t port, Frame& frame);
 private:
     // Camera controls
     bool setBrightness(int32_t value);
